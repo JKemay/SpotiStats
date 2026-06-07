@@ -139,16 +139,23 @@ Notes from the run (cleanup, non-blocking):
 
 ### >>> RESUME HERE <<<
 
-**The auth spine is proven — start Phase 1** (full details in "After the spike passes" below).
-First concrete steps:
+**Phase 1 in progress.** (Full roadmap in "After the spike passes" below.)
 
-1. **Delete the spike:** remove `SpotiStats/Views/AuthSpikeView.swift` and point
-   `SpotiStats/App/SpotiStatsApp.swift` back at real navigation (Home / Tracks / Artists) instead
-   of the spike screen.
-2. Build `AuthService` (real sign-in + the `store-spotify-credentials` handoff, including the
-   nil-`provider_refresh_token` fallback — force fresh consent with `show_dialog=true`) and
-   `SpotifyAPIClient`, per the Phase 1 roadmap.
-3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
+Done:
+- [x] Deleted the spike (`AuthSpikeView` + old placeholder `RootView`). The app now launches
+  `MainTabView` — a themed tab shell (Home / Tracks / Artists) with placeholder screens built on a
+  shared `PlaceholderScreen`. Builds, lints `--strict` clean, and runs on the iOS 18 simulator.
+  (branch `feat/phase-1-nav`)
+
+Next:
+1. **`AuthService`** — real Spotify sign-in + the `store-spotify-credentials` handoff, including the
+   nil-`provider_refresh_token` fallback (force fresh consent with `show_dialog=true`). Add a
+   sign-in gate so the tab shell only appears once authenticated.
+2. **`SpotifyAPIClient`** — native `URLSession` + `Codable`, protocol-based for tests; top tracks/
+   artists (label short/medium/long windows honestly) + recently played; 401 -> refresh-and-retry-
+   once; respect `429 Retry-After`. Decoding tests against JSON fixtures.
+3. **Fill the screens** — one `@Observable @MainActor` view model per tab; loading/empty/error states.
+4. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
