@@ -72,6 +72,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.spotistats.SpotiStatsTests
+        # Xcode 16.0 won't sign the test bundle without an Info.plist; generate one automatically
+        # (newer Xcode versions used in CI do this implicitly).
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   SpotiStats:
