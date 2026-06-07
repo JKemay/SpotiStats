@@ -151,16 +151,25 @@ Done:
   honor `Retry-After` (bounded retries). Models in `SpotiStats/Models/SpotifyModels.swift` with an
   honest `SpotifyTimeRange` (long window is NOT "all time"). 13 unit tests pass (fixture decoding +
   a `MockURLProtocol` for behavior). Also added `GENERATE_INFOPLIST_FILE: YES` to the test target
-  so it builds under local Xcode 16.0. (branch `feat/spotify-api-client`)
+  so it builds under local Xcode 16.0. (merged, PR #3)
+- [x] `AuthService` (`@MainActor @Observable`) — Spotify OAuth sign-in + the
+  `store-spotify-credentials` handoff with the nil-`provider_refresh_token` fallback
+  (`show_dialog=true`), session restore, and sign-out. Credential ops sit behind a
+  `SpotifyCredentialsBackend` protocol (live impl uses Supabase Edge Functions). A
+  `SpotifyTokenProvider` caches the access token in memory (never persisted) and conforms to
+  `SpotifyTokenProviding`, so it plugs straight into `SpotifyAPIClient`. `RootGateView` gates
+  SignIn vs the tab shell on auth state. 18 tests pass (added 5 for token caching/expiry/clear via
+  a stub backend + injected clock). VERIFIED: app restores the persisted session and lands on the
+  tab shell. NOT yet re-verified post-refactor: a *fresh* interactive `connectSpotify()` sign-in
+  (owner action — needs Spotify credentials). (branch `feat/auth-service`)
 
 Next:
-1. **`AuthService`** — real Spotify sign-in + the `store-spotify-credentials` handoff, including the
-   nil-`provider_refresh_token` fallback (force fresh consent with `show_dialog=true`). Implement
-   `SpotifyTokenProviding` here (cache access token in memory; mint via `refresh-spotify-token`) so
-   it plugs straight into `SpotifyAPIClient`. Add a sign-in gate so the tab shell only appears once
-   authenticated. NOTE: end-to-end verification needs an interactive Spotify sign-in (owner action).
-2. **Fill the screens** — wire `SpotifyAPIClient` into one `@Observable @MainActor` view model per
-   tab; loading/empty/error states. Label the short/medium/long windows honestly in the UI.
+1. **Fill the screens** — wire `SpotifyAPIClient` (via `auth.tokenProvider`, injected in the
+   environment) into one `@Observable @MainActor` view model per tab; loading/empty/error states.
+   Label the short/medium/long windows honestly in the UI. Add a sign-out affordance somewhere
+   (e.g. a Settings/profile entry) — there is currently no UI to sign out.
+2. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
+   OAuth flow + `store-spotify-credentials` still succeed end-to-end after the refactor.
 3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
