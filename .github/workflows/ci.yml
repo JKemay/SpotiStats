@@ -12,16 +12,17 @@ concurrency:
 jobs:
   build-test:
     name: Build & Test
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+      # Use the latest stable Xcode so it can read the XcodeGen-generated project format.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Install tools
-        run: |
-          brew install xcodegen swiftlint
+        run: brew install xcodegen swiftlint xcbeautify
 
       - name: Create secrets from example (CI placeholder values)
         run: cp SpotiStats/Resources/Secrets.xcconfig.example SpotiStats/Resources/Secrets.xcconfig
@@ -32,17 +33,20 @@ jobs:
       - name: Lint
         run: swiftlint --strict
 
+      - name: Pick an available iOS simulator
+        id: sim
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -Eo 'iPhone [0-9]+( Pro( Max)?)?' | sort -u | tail -1)
+          echo "Using simulator: $DEVICE"
+          echo "name=$DEVICE" >> "$GITHUB_OUTPUT"
+
       - name: Build & Test
         run: |
           set -o pipefail
           xcodebuild test \
             -project SpotiStats.xcodeproj \
             -scheme SpotiStats \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
-          | xcbeautify || xcodebuild test \
-            -project SpotiStats.xcodeproj \
-            -scheme SpotiStats \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            CODE_SIGNING_ALLOWED=NO
+          | xcbeautify
