@@ -161,7 +161,9 @@ Done:
   SignIn vs the tab shell on auth state. 18 tests pass (added 5 for token caching/expiry/clear via
   a stub backend + injected clock). VERIFIED: app restores the persisted session and lands on the
   tab shell. NOT yet re-verified post-refactor: a *fresh* interactive `connectSpotify()` sign-in
-  (owner action — needs Spotify credentials). (branch `feat/auth-service`)
+  (owner action — needs Spotify credentials). (merged, PR #4)
+
+**Next up = "Fill the screens" — NOT started (no code on disk for it yet).** Start fresh from `main`.
 
 Next:
 1. **Fill the screens** — wire `SpotifyAPIClient` (via `auth.tokenProvider`, injected in the
@@ -171,6 +173,33 @@ Next:
 2. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
    OAuth flow + `store-spotify-credentials` still succeed end-to-end after the refactor.
 3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
+
+Concrete plan for step 1 (so the next agent can execute fast):
+- Add a generic `LoadState<Value>` (idle / loading / loaded / failed(String)) plus a reusable
+  `LoadableList` view that renders loading / error+retry / empty / list from a `LoadState<[Item]>`.
+- Put a `SpotifyAPI` in the SwiftUI environment via a custom `EnvironmentKey`
+  (`@Environment(\.spotifyAPI)`) — `SpotifyAPIClient` is not `@Observable`, so the object-based
+  `.environment` won't work. In `RootGateView`'s signed-in branch build ONE
+  `SpotifyAPIClient(tokenProvider: auth.tokenProvider)` (store it on `RootGateModel` so it isn't
+  recreated each render) and inject it next to `.environment(auth)`.
+- One `@MainActor @Observable` view model per tab: `HomeViewModel` -> `recentlyPlayed`,
+  `TracksViewModel` -> `topTracks(range:)`, `ArtistsViewModel` -> `topArtists(range:)`. Each has
+  `load(using api: SpotifyAPI)` that drives a `LoadState`. Screens read `@Environment(\.spotifyAPI)`
+  and load from `.task(id:)` (Tracks/Artists key the id on the selected `SpotifyTimeRange`).
+- Tracks/Artists: a segmented `Picker` over `SpotifyTimeRange.allCases` using `honestLabel`.
+- Replace the three `PlaceholderScreen` bodies with real lists; then delete the now-unused
+  `PlaceholderScreen.swift`.
+- Tests: a `MockSpotifyAPI` conforming to `SpotifyAPI`; assert each view model's `load` yields
+  `.loaded` on success and `.failed` on a thrown error (offline, no network).
+- Add a sign-out affordance (none exists yet) — e.g. a Settings tab/profile button calling
+  `auth.signOut()`.
+
+#### Session log
+- 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
+- 2026-06-07: Phase 1 progress, all merged to `main` with CI green — tab-nav shell (PR #2),
+  `SpotifyAPIClient` + 13 tests (PR #3), `AuthService` + token provider + sign-in gate, 18 tests
+  total (PR #4). Local toolchain note: Xcode 16.0 is installed at `/Applications/Xcode.app` and
+  active; 18 unit tests pass locally and in CI. Next agent starts at "Fill the screens" above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
