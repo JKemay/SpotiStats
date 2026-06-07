@@ -145,17 +145,23 @@ Done:
 - [x] Deleted the spike (`AuthSpikeView` + old placeholder `RootView`). The app now launches
   `MainTabView` — a themed tab shell (Home / Tracks / Artists) with placeholder screens built on a
   shared `PlaceholderScreen`. Builds, lints `--strict` clean, and runs on the iOS 18 simulator.
-  (branch `feat/phase-1-nav`)
+  (merged, PR #2)
+- [x] `SpotifyAPIClient` — native `URLSession` + `Codable`, protocol-based (`SpotifyAPI`) with an
+  injectable `SpotifyTokenProviding`. Implements 401 -> refresh-and-retry-once and 429 ->
+  honor `Retry-After` (bounded retries). Models in `SpotiStats/Models/SpotifyModels.swift` with an
+  honest `SpotifyTimeRange` (long window is NOT "all time"). 13 unit tests pass (fixture decoding +
+  a `MockURLProtocol` for behavior). Also added `GENERATE_INFOPLIST_FILE: YES` to the test target
+  so it builds under local Xcode 16.0. (branch `feat/spotify-api-client`)
 
 Next:
 1. **`AuthService`** — real Spotify sign-in + the `store-spotify-credentials` handoff, including the
-   nil-`provider_refresh_token` fallback (force fresh consent with `show_dialog=true`). Add a
-   sign-in gate so the tab shell only appears once authenticated.
-2. **`SpotifyAPIClient`** — native `URLSession` + `Codable`, protocol-based for tests; top tracks/
-   artists (label short/medium/long windows honestly) + recently played; 401 -> refresh-and-retry-
-   once; respect `429 Retry-After`. Decoding tests against JSON fixtures.
-3. **Fill the screens** — one `@Observable @MainActor` view model per tab; loading/empty/error states.
-4. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
+   nil-`provider_refresh_token` fallback (force fresh consent with `show_dialog=true`). Implement
+   `SpotifyTokenProviding` here (cache access token in memory; mint via `refresh-spotify-token`) so
+   it plugs straight into `SpotifyAPIClient`. Add a sign-in gate so the tab shell only appears once
+   authenticated. NOTE: end-to-end verification needs an interactive Spotify sign-in (owner action).
+2. **Fill the screens** — wire `SpotifyAPIClient` into one `@Observable @MainActor` view model per
+   tab; loading/empty/error states. Label the short/medium/long windows honestly in the UI.
+3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
