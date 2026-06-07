@@ -1,0 +1,10 @@
+# Normalize line endings to LF in the repo for all text files.
+# Prevents cross-platform (Windows authoring / macOS+Linux CI) churn.
+* text=auto eol=lf
+
+# Explicitly treat common binary/asset types as binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.xcassets binary

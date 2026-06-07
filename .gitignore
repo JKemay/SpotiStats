@@ -1,0 +1,51 @@
+# ---- Secrets (NEVER commit) ----
+# Real secrets live here; only the .example template is committed.
+SpotiStats/Resources/Secrets.xcconfig
+*.secrets
+.env
+.env.*
+
+# ---- Xcode / Swift ----
+## Build generated
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+## XcodeGen-generated project (we generate it from project.yml on the Mac)
+SpotiStats.xcodeproj/
+
+## User-specific
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+## Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+## Various
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ---- Supabase ----
+supabase/.branches/
+supabase/.temp/
+
+# ---- Tooling / editors ----
+.vscode/
+.idea/
+.claude/
+
+# ---- Brainstorming companion (local only) ----
+.superpowers/

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+
+      - name: Install tools
+        run: |
+          brew install xcodegen swiftlint
+
+      - name: Create secrets from example (CI placeholder values)
+        run: cp SpotiStats/Resources/Secrets.xcconfig.example SpotiStats/Resources/Secrets.xcconfig
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Lint
+        run: swiftlint --strict
+
+      - name: Build & Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project SpotiStats.xcodeproj \
+            -scheme SpotiStats \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify || xcodebuild test \
+            -project SpotiStats.xcodeproj \
+            -scheme SpotiStats \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO

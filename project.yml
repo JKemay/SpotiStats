@@ -1,0 +1,85 @@
+# XcodeGen project definition.
+# The .xcodeproj is GENERATED from this file (never hand-edited, never committed):
+#   xcodegen generate
+#
+# Why XcodeGen: the whole project is described in this one reviewable text file, so there are no
+# noisy, merge-conflict-prone project.pbxproj diffs, and the project is reproducible on any Mac.
+
+name: SpotiStats
+
+options:
+  bundleIdPrefix: com.spotistats
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: "" # set locally in Xcode for device builds
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+# Shared third-party dependencies (Swift Package Manager).
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: "2.0.0"
+
+targets:
+  SpotiStats:
+    type: application
+    platform: iOS
+    sources:
+      - path: SpotiStats
+    # Runtime config (Supabase project ref, anon key, OAuth scheme) is supplied by an
+    # .xcconfig that is NOT committed. Copy Secrets.xcconfig.example -> Secrets.xcconfig.
+    configFiles:
+      Debug: SpotiStats/Resources/Secrets.xcconfig
+      Release: SpotiStats/Resources/Secrets.xcconfig
+    dependencies:
+      - package: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.spotistats.SpotiStats
+        GENERATE_INFOPLIST_FILE: YES
+        # Surface build-config values into Info.plist so they're readable at runtime.
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    info:
+      path: SpotiStats/Resources/Info.generated.plist
+      properties:
+        CFBundleDisplayName: SpotiStats
+        UILaunchScreen: {}
+        # Read at runtime via Bundle.main.object(forInfoDictionaryKey:).
+        SUPABASE_PROJECT_REF: $(SUPABASE_PROJECT_REF)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        OAUTH_CALLBACK_SCHEME: $(OAUTH_CALLBACK_SCHEME)
+        # OAuth redirect: <scheme>://login-callback
+        CFBundleURLTypes:
+          - CFBundleURLName: com.spotistats.oauth
+            CFBundleURLSchemes:
+              - $(OAUTH_CALLBACK_SCHEME)
+
+  SpotiStatsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SpotiStatsTests
+    dependencies:
+      - target: SpotiStats
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.spotistats.SpotiStatsTests
+
+schemes:
+  SpotiStats:
+    build:
+      targets:
+        SpotiStats: all
+        SpotiStatsTests: [test]
+    test:
+      targets:
+        - SpotiStatsTests
+      gatherCoverageData: true

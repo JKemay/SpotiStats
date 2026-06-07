@@ -1,0 +1,54 @@
+# SwiftLint configuration for SpotiStats
+# Docs: https://realm.github.io/SwiftLint/
+
+included:
+  - SpotiStats
+  - SpotiStatsTests
+
+excluded:
+  - .build
+  - .swiftpm
+  - DerivedData
+  - SpotiStats.xcodeproj
+
+# Opt-in rules worth having on a project that's trying to teach good habits.
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - last_where
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - vertical_whitespace_closing_braces
+
+# Keep the signal high while learning; tune as the codebase grows.
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 300
+  error: 450
+
+file_length:
+  warning: 450
+  error: 700
+
+function_body_length:
+  warning: 60
+  error: 100
+
+identifier_name:
+  excluded: [id, x, y, vm, to]
+
+# Force unwrapping is a warning, not an error, so it doesn't block early learning,
+# but it stays visible so the habit of avoiding it sticks.
+force_unwrapping:
+  severity: warning
