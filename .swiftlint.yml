@@ -46,7 +46,8 @@ function_body_length:
   error: 100
 
 identifier_name:
-  excluded: [id, x, y, vm, to]
+  # Allow conventional short names: ids, axis vars, and the xs/sm/md/lg/xl spacing scale.
+  excluded: [id, x, y, vm, to, xs, sm, md, lg, xl]
 
 # Force unwrapping is a warning, not an error, so it doesn't block early learning,
 # but it stays visible so the habit of avoiding it sticks.
