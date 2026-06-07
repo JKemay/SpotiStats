@@ -67,18 +67,19 @@ extension SpotifyAPI {
 final class SpotifyAPIClient: SpotifyAPI {
     private let tokenProvider: SpotifyTokenProviding
     private let session: URLSession
-    private let baseURL: URL
+    private let baseURL: String
     private let decoder: JSONDecoder
 
     /// How many times we'll back off and retry on HTTP 429 before giving up.
     private static let maxRateLimitRetries = 2
 
-    static let defaultBaseURL = URL(string: "https://api.spotify.com/v1")!
+    /// Kept as a `String` (not a force-unwrapped `URL`) so request URLs are built safely in `makeURL`.
+    static let defaultBaseURL = "https://api.spotify.com/v1"
 
     init(
         tokenProvider: SpotifyTokenProviding,
         session: URLSession = .shared,
-        baseURL: URL = SpotifyAPIClient.defaultBaseURL
+        baseURL: String = SpotifyAPIClient.defaultBaseURL
     ) {
         self.tokenProvider = tokenProvider
         self.session = session
@@ -176,7 +177,7 @@ final class SpotifyAPIClient: SpotifyAPI {
     }
 
     private func makeURL(path: String, query: [URLQueryItem]) -> URL? {
-        guard let base = URL(string: "\(baseURL.absoluteString)/\(path)"),
+        guard let base = URL(string: "\(baseURL)/\(path)"),
               var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
             return nil
         }
