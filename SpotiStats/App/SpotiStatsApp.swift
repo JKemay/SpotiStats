@@ -9,7 +9,8 @@ import SwiftUI
 struct SpotiStatsApp: App {
     var body: some Scene {
         WindowGroup {
-            RootView()
+            // Phase 0.5: the temporary auth/token proof spike. Swapped for real navigation in Phase 1.
+            AuthSpikeView()
                 // Force dark mode: the whole aesthetic is a lo-fi night scene.
                 .preferredColorScheme(.dark)
         }
