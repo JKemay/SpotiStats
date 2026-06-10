@@ -36,6 +36,7 @@ struct RootGateView: View {
         case .signedIn:
             MainTabView()
                 .environment(auth)
+                .environment(\.spotifyAPI, model.spotifyAPI)
         }
     }
 
@@ -68,10 +69,15 @@ final class RootGateModel {
 
     private(set) var phase: Phase = .loading
 
+    /// The one live Spotify client, built alongside `AuthService` and held here so it isn't
+    /// recreated on every render. Until sign-in completes, the unconfigured default just throws.
+    private(set) var spotifyAPI: any SpotifyAPI = UnconfiguredSpotifyAPI()
+
     func start() async {
         if case .ready = phase { return }
         do {
             let auth = try AuthService.live()
+            spotifyAPI = SpotifyAPIClient(tokenProvider: auth.tokenProvider)
             phase = .ready(auth)
             await auth.restoreSession()
         } catch {

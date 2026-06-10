@@ -163,36 +163,39 @@ Done:
   tab shell. NOT yet re-verified post-refactor: a *fresh* interactive `connectSpotify()` sign-in
   (owner action — needs Spotify credentials). (merged, PR #4)
 
-**Next up = "Fill the screens" — NOT started (no code on disk for it yet).** Start fresh from `main`.
+Done (continued):
+- [x] **Fill the screens** (PR #6). All four tabs are real now:
+  - `LoadState<Value>` (idle/loading/loaded/failed(String)) + `UserFacingError` (central
+    error->friendly-message mapping) in `Models/LoadState.swift`.
+  - `SpotifyAPI` rides the SwiftUI environment via a custom key (`@Environment(\.spotifyAPI)`,
+    `Services/SpotifyAPIEnvironment.swift`); the default value is an `UnconfiguredSpotifyAPI`
+    that throws a clear error. `RootGateModel` builds ONE `SpotifyAPIClient` and `RootGateView`
+    injects it next to `.environment(auth)` in the signed-in branch.
+  - One `@MainActor @Observable` view model per tab (`ViewModels/`): Home -> `recentlyPlayed`,
+    Tracks/Artists -> top items with a `selectedRange`; screens reload via `.task(id: range)`.
+  - Shared UI in `Views/Components/`: `LoadableList` (spinner / error+retry / empty / themed list,
+    pull-to-refresh), `Rows.swift` (TrackRow/ArtistRow/RecentlyPlayedRow + artwork/rank/explicit
+    pieces), `TimeRangePicker` (segmented, honest labels + "not lifetime totals" caption).
+  - Settings tab with confirm-dialog **Sign Out** (calls `auth.signOut()`) and app version.
+    `PlaceholderScreen.swift` deleted.
+  - **Decoding hardening from a real-API bug:** live `/me/top/artists` can omit `genres` /
+    `popularity` / `images` (docs claim otherwise; hit it 2026-06-10 with HTTP 200 but a decode
+    failure). `SpotifyArtist` now defaults those via `decodeIfPresent`; the client logs decode
+    failures via `os.Logger` (subsystem `com.spotistats`, category `SpotifyAPI`).
+  - DEBUG-only `-initialTab <home|tracks|artists|settings>` launch argument opens the app on a
+    given tab — used for headless simulator verification, will serve UI tests later.
+  - 35 unit tests pass (`MockSpotifyAPI` + per-VM success/failure/recovery, model display
+    helpers, sparse-artist regression). VERIFIED on the iOS 18 simulator with live data: all
+    three data tabs render real content (restored session -> minted token -> lists with artwork);
+    error+retry state renders; Settings renders.
 
-Next:
-1. **Fill the screens** — wire `SpotifyAPIClient` (via `auth.tokenProvider`, injected in the
-   environment) into one `@Observable @MainActor` view model per tab; loading/empty/error states.
-   Label the short/medium/long windows honestly in the UI. Add a sign-out affordance somewhere
-   (e.g. a Settings/profile entry) — there is currently no UI to sign out.
-2. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
+**Next up:**
+1. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
    OAuth flow + `store-spotify-credentials` still succeed end-to-end after the refactor.
-3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
-
-Concrete plan for step 1 (so the next agent can execute fast):
-- Add a generic `LoadState<Value>` (idle / loading / loaded / failed(String)) plus a reusable
-  `LoadableList` view that renders loading / error+retry / empty / list from a `LoadState<[Item]>`.
-- Put a `SpotifyAPI` in the SwiftUI environment via a custom `EnvironmentKey`
-  (`@Environment(\.spotifyAPI)`) — `SpotifyAPIClient` is not `@Observable`, so the object-based
-  `.environment` won't work. In `RootGateView`'s signed-in branch build ONE
-  `SpotifyAPIClient(tokenProvider: auth.tokenProvider)` (store it on `RootGateModel` so it isn't
-  recreated each render) and inject it next to `.environment(auth)`.
-- One `@MainActor @Observable` view model per tab: `HomeViewModel` -> `recentlyPlayed`,
-  `TracksViewModel` -> `topTracks(range:)`, `ArtistsViewModel` -> `topArtists(range:)`. Each has
-  `load(using api: SpotifyAPI)` that drives a `LoadState`. Screens read `@Environment(\.spotifyAPI)`
-  and load from `.task(id:)` (Tracks/Artists key the id on the selected `SpotifyTimeRange`).
-- Tracks/Artists: a segmented `Picker` over `SpotifyTimeRange.allCases` using `honestLabel`.
-- Replace the three `PlaceholderScreen` bodies with real lists; then delete the now-unused
-  `PlaceholderScreen.swift`.
-- Tests: a `MockSpotifyAPI` conforming to `SpotifyAPI`; assert each view model's `load` yields
-  `.loaded` on success and `.failed` on a thrown error (offline, no network).
-- Add a sign-out affordance (none exists yet) — e.g. a Settings tab/profile button calling
-  `auth.signOut()`.
+2. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
+3. **Phase 2 — Collector** (see roadmap below): `play_events` + `collector_runs` migration, the
+   `collect-plays` Edge Function, `pg_cron` scheduling. Can be built + unit-tested without the
+   owner; deploying needs Supabase access.
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
@@ -200,6 +203,9 @@ Concrete plan for step 1 (so the next agent can execute fast):
   `SpotifyAPIClient` + 13 tests (PR #3), `AuthService` + token provider + sign-in gate, 18 tests
   total (PR #4). Local toolchain note: Xcode 16.0 is installed at `/Applications/Xcode.app` and
   active; 18 unit tests pass locally and in CI. Next agent starts at "Fill the screens" above.
+- 2026-06-10: "Fill the screens" built and VERIFIED with live data on the simulator (PR #6);
+  35 tests. Caught + fixed a real decode bug (sparse artist objects). Next agent starts at
+  "Verify fresh sign-in" / Phase 2 collector above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
@@ -255,9 +261,13 @@ sees a Spotify token. Broaden tests; finalize README + screenshots.
 project.yml                       XcodeGen project definition (source of truth for the Xcode project)
 SpotiStats/App/                   entry point, AppConfig (reads Secrets via Info.plist)
 SpotiStats/DesignSystem/          Theme (lo-fi palette)
-SpotiStats/Services/              Backend (Supabase client factory)
-SpotiStats/Views/                 RootView (placeholder), AuthSpikeView (temporary spike)
-SpotiStatsTests/                  unit tests (AppConfig)
+SpotiStats/Models/                SpotifyModels (Codable + display helpers), LoadState
+SpotiStats/Services/              Backend, AuthService, token provider, SpotifyAPIClient,
+                                  SpotifyAPIEnvironment (env key), credentials backend
+SpotiStats/ViewModels/            one @Observable view model per tab
+SpotiStats/Views/                 RootGateView, SignInView, MainTabView, tab screens, Settings
+SpotiStats/Views/Components/      LoadableList, Rows, TimeRangePicker
+SpotiStatsTests/                  unit tests (+ Support/: mocks, fixtures, MockURLProtocol)
 supabase/migrations/              SQL schema + RLS
 supabase/functions/               Edge Functions (+ _shared)
 .github/workflows/ci.yml          macOS CI: generate -> lint -> build -> test

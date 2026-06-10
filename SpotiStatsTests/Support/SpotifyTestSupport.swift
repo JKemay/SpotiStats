@@ -83,6 +83,10 @@ enum SpotifyFixtures {
           "genres": ["rap", "hip hop"],
           "popularity": 95,
           "images": [{ "url": "https://img/travis", "height": 640, "width": 640 }]
+        },
+        {
+          "id": "art2",
+          "name": "Sparse Fields"
         }
       ]
     }

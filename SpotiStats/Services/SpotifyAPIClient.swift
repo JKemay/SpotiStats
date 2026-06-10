@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // MARK: - Token provider
 
@@ -124,9 +125,18 @@ final class SpotifyAPIClient: SpotifyAPI {
 
     // MARK: Request plumbing
 
+    private static let logger = Logger(subsystem: "com.spotistats", category: "SpotifyAPI")
+
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> T {
         let data = try await performWithRetries(path: path, query: query)
-        return try decoder.decode(T.self, from: data)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            // Log the decoder's diagnosis (key paths, not payload contents) — without this,
+            // a model/API mismatch is invisible in the field.
+            Self.logger.error("Decoding \(T.self) from \(path) failed: \(String(describing: error))")
+            throw error
+        }
     }
 
     private func performWithRetries(path: String, query: [URLQueryItem]) async throws -> Data {
