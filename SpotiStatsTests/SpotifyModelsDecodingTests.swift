@@ -32,12 +32,26 @@ final class SpotifyModelsDecodingTests: XCTestCase {
             SpotifyPage<SpotifyArtist>.self,
             from: Data(SpotifyFixtures.topArtists.utf8)
         )
-        XCTAssertEqual(page.items.count, 1)
+        XCTAssertEqual(page.items.count, 2)
         let artist = page.items[0]
         XCTAssertEqual(artist.name, "Travis Scott")
         XCTAssertEqual(artist.genres, ["rap", "hip hop"])
         XCTAssertEqual(artist.popularity, 95)
         XCTAssertEqual(artist.images.first?.url, "https://img/travis")
+    }
+
+    /// Live `/me/top/artists` responses sometimes omit `genres`/`popularity`/`images` entirely
+    /// (seen in the field 2026-06-10) — one sparse artist must not fail the whole page.
+    func testDecodesArtistWithMissingOptionalFields() throws {
+        let page = try makeDecoder().decode(
+            SpotifyPage<SpotifyArtist>.self,
+            from: Data(SpotifyFixtures.topArtists.utf8)
+        )
+        let sparse = page.items[1]
+        XCTAssertEqual(sparse.name, "Sparse Fields")
+        XCTAssertEqual(sparse.genres, [])
+        XCTAssertNil(sparse.popularity)
+        XCTAssertEqual(sparse.images, [])
     }
 
     func testDecodesRecentlyPlayed() throws {

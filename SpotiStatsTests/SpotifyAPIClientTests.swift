@@ -50,7 +50,7 @@ final class SpotifyAPIClientTests: XCTestCase {
         let client = makeClient(tokenProvider: provider)
         let artists = try await client.topArtists(range: .shortTerm)
 
-        XCTAssertEqual(artists.count, 1)
+        XCTAssertEqual(artists.count, 2)
         XCTAssertEqual(provider.refreshCallCount, 1)
         XCTAssertEqual(callCount, 2)
         let lastAuth = MockURLProtocol.capturedRequests.last?.value(forHTTPHeaderField: "Authorization")

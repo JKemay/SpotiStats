@@ -35,6 +35,20 @@ struct SpotifyImage: Decodable, Equatable, Sendable {
     let width: Int?
 }
 
+extension [SpotifyImage] {
+    /// The smallest image, for row-sized thumbnails. Spotify returns images largest-first, but we
+    /// sort by area instead of trusting the order (and ignore entries with missing dimensions
+    /// unless they're all we have).
+    var thumbnailURL: URL? {
+        let sized = filter { $0.width != nil && $0.height != nil }
+        let smallest = sized.min { lhs, rhs in
+            (lhs.width ?? 0) * (lhs.height ?? 0) < (rhs.width ?? 0) * (rhs.height ?? 0)
+        }
+        guard let candidate = smallest ?? first else { return nil }
+        return URL(string: candidate.url)
+    }
+}
+
 /// A minimal artist reference as embedded inside a track.
 struct SpotifyArtistRef: Decodable, Equatable, Sendable {
     let id: String?
@@ -70,12 +84,37 @@ struct SpotifyTrack: Decodable, Equatable, Sendable {
 // MARK: - Artists
 
 /// A full artist object (from the top-artists endpoint).
+///
+/// Spotify's docs say `genres` is always present, but live responses omit it for some artists
+/// (verified 2026-06-10 against `/me/top/artists`), so it and `images` decode with empty
+/// defaults instead of failing the whole page.
 struct SpotifyArtist: Decodable, Equatable, Sendable {
     let id: String
     let name: String
     let genres: [String]
     let popularity: Int?
     let images: [SpotifyImage]
+
+    init(id: String, name: String, genres: [String], popularity: Int?, images: [SpotifyImage]) {
+        self.id = id
+        self.name = name
+        self.genres = genres
+        self.popularity = popularity
+        self.images = images
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        genres = try container.decodeIfPresent([String].self, forKey: .genres) ?? []
+        popularity = try container.decodeIfPresent(Int.self, forKey: .popularity)
+        images = try container.decodeIfPresent([SpotifyImage].self, forKey: .images) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, genres, popularity, images
+    }
 }
 
 // MARK: - Response envelopes
@@ -92,6 +131,27 @@ struct SpotifyPage<Item: Decodable>: Decodable {
 struct PlayHistoryItem: Decodable, Equatable, Sendable {
     let track: SpotifyTrack
     let playedAt: String
+
+    /// A best-effort parse of `playedAt` for display ("2 hours ago"). Returns nil rather than
+    /// guessing if the format is unexpected — the UI simply omits the timestamp then.
+    var playedAtDate: Date? {
+        Self.fractionalSecondsFormatter.date(from: playedAt)
+            ?? Self.wholeSecondsFormatter.date(from: playedAt)
+    }
+
+    // ISO8601DateFormatter is thread-safe and expensive to build, so share static instances.
+    // Spotify usually includes fractional seconds, but we accept whole seconds too.
+    private static let fractionalSecondsFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let wholeSecondsFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 }
 
 /// The recently-played response envelope.
