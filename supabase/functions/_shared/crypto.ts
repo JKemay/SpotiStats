@@ -7,7 +7,10 @@
 
 export const CURRENT_KEY_VERSION = 1;
 
-function base64ToBytes(b64: string): Uint8Array {
+// Note: these helpers rely on inferred `Uint8Array<ArrayBuffer>` return types — explicit
+// `: Uint8Array` annotations would widen to ArrayBufferLike, which WebCrypto's BufferSource
+// rejects under Deno 2.8+ type-checking.
+function base64ToBytes(b64: string) {
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -20,7 +23,7 @@ function bytesToBase64(bytes: Uint8Array): string {
     return btoa(binary);
 }
 
-function keyBytes(): Uint8Array {
+function keyBytes() {
     const b64 = Deno.env.get("TOKEN_ENCRYPTION_KEY");
     if (!b64) throw new Error("TOKEN_ENCRYPTION_KEY is not set");
     const raw = base64ToBytes(b64);
@@ -37,8 +40,8 @@ async function importKey(): Promise<CryptoKey> {
     ]);
 }
 
-function aad(userId: string, keyVersion: number): Uint8Array {
-    return new TextEncoder().encode(`${userId}|${keyVersion}|spotify_refresh_token`);
+function aad(userId: string, keyVersion: number) {
+    return new Uint8Array(new TextEncoder().encode(`${userId}|${keyVersion}|spotify_refresh_token`));
 }
 
 export interface EncryptedToken {

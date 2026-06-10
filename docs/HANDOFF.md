@@ -85,13 +85,35 @@ tokens. If Spotify returns a rotated refresh token, we re-encrypt and overwrite.
   - `spotify_credentials` — **service-role only** (RLS on, no client policies). Holds the encrypted
     refresh token + collector state (`last_collected_after_ms`, `last_success_at`, `last_error`,
     `token_refresh_failed_at`, `reauth_required`, `enabled`).
-  - (The single `rls_enabled_no_policy` advisor on `spotify_credentials` is intentional.)
-- **Edge Functions deployed (`supabase/functions/`):**
+  - `play_events` — one row per observed play (denormalized track snapshot + `idempotency_key`
+    unique). Owner-readable via RLS (select only); only the service role writes.
+  - `collector_runs` — collector observability (status/counters/error summary per run).
+    Service-role only.
+  - (The `rls_enabled_no_policy` advisors on `spotify_credentials` / `collector_runs` are
+    intentional.)
+- **Edge Functions (`supabase/functions/`):**
   - `store-spotify-credentials` — OAuth handoff; encrypts + stores the refresh token.
   - `refresh-spotify-token` — mints a fresh access token; handles rotation + reauth.
-  - Shared code in `supabase/functions/_shared/` (`crypto.ts`, `spotify.ts`, `http.ts`).
+  - `collect-plays` — the Phase 2 collector (see STATUS for deploy steps). Deploy with
+    `--no-verify-jwt`; it is gated by the `x-collector-secret` header instead (constant-time
+    compare against the `COLLECT_PLAYS_SECRET` Edge secret; fails closed if unset).
+  - Shared code in `supabase/functions/_shared/` (`crypto.ts`, `spotify.ts`, `http.ts`,
+    `plays.ts` — idempotency + row mapping, `secrets.ts` — constant-time compare).
+  - Deno tests in `supabase/functions/_tests/` (`deno test --allow-env --no-lock _tests/` from
+    `supabase/functions/`; CI runs them in the `backend` job).
 - **Edge Function secrets that must be set** (in the dashboard): `SPOTIFY_CLIENT_ID`,
-  `SPOTIFY_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`.
+  `SPOTIFY_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `COLLECT_PLAYS_SECRET`.
+- **Vault secrets** (Dashboard -> Project Settings -> Vault; read by `invoke_collect_plays()` at
+  execution time): `collect_plays_url` = `https://<ref>.supabase.co/functions/v1/collect-plays`,
+  `collect_plays_secret` = same value as `COLLECT_PLAYS_SECRET`.
+- **Cron:** the migration schedules `collect-plays` every 10 minutes via `pg_cron` -> `pg_net` ->
+  the wrapper `public.invoke_collect_plays()` (security definer, EXECUTE revoked from clients;
+  warns + no-ops until the Vault secrets exist).
+- **Idempotency-key scheme (LOAD-BEARING, do not change casually):** SHA-256 hex of canonical
+  JSON — keys sorted, `played_at` normalized to epoch ms, `user_id` lowercased;
+  `{played_at_ms, track_id, user_id}` for catalog tracks, falling back to
+  `{artist_names (sorted), duration_ms, played_at_ms, track_name, user_id}` for local tracks.
+  Pinned by an exact-hash test in `_tests/plays_test.ts`.
 - Manage via the Supabase CLI (`supabase functions deploy`, `supabase db push`) or the Supabase MCP.
 
 ---
@@ -189,13 +211,39 @@ Done (continued):
     three data tabs render real content (restored session -> minted token -> lists with artwork);
     error+retry state renders; Settings renders.
 
+Done (continued):
+- [x] **Phase 2 collector — CODE COMPLETE, NOT DEPLOYED** (PR #7).
+  - Migration `20260610090000_play_events_and_collector.sql`: `play_events` (+ indexes
+    `(user_id, played_at desc)` / `(user_id, track_id)`, unique `idempotency_key`),
+    `collector_runs`, RLS, `pg_cron`/`pg_net` scheduling via `public.invoke_collect_plays()`.
+  - `collect-plays` Edge Function: batches 20 users/run oldest-success-first, skips
+    `reauth_required`/disabled, decrypts + mints per user (rotation persisted; `invalid_grant`
+    flags reauth), fetches recently-played with the `after` cursor, upserts by idempotency key
+    (`ON CONFLICT DO NOTHING`), advances the cursor (prefers Spotify's `cursors.after`), records
+    a `collector_runs` row. 429: waits out small Retry-After once, else skips the user this run.
+    One user's failure never aborts the run.
+  - 21 Deno tests (`_tests/`): idempotency-scheme stability + pinned hash, row mapping, AES-GCM
+    round-trip/AAD-binding/nonce-freshness, constant-time compare. CI now has a `backend` job
+    (ubuntu + Deno) that type-checks all function entrypoints and runs these.
+  - Type-checking hardening that came with it: fixed `Uint8Array` annotations in `crypto.ts`
+    (Deno 2.8 WebCrypto strictness) and union-narrowing in the two existing functions
+    (`if (auth.error)` -> `if (auth.error !== null)`). No runtime behavior change.
+
 **Next up:**
-1. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
+1. **Deploy the collector** (owner or agent with Supabase access — none of this is done):
+   a. `supabase db push` (applies the play_events/collector_runs/cron migration).
+   b. Generate a strong secret; set Edge secret `COLLECT_PLAYS_SECRET` to it.
+   c. Create Vault secrets `collect_plays_url` + `collect_plays_secret` (values in "Backend
+      specifics" above).
+   d. `supabase functions deploy collect-plays --no-verify-jwt`.
+   e. Smoke test: `curl -X POST <url> -H "x-collector-secret: <secret>"` -> expect a JSON run
+      summary; check `collector_runs` and `play_events` rows; confirm a second run inserts 0
+      duplicates.
+2. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
    OAuth flow + `store-spotify-credentials` still succeed end-to-end after the refactor.
-2. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
-3. **Phase 2 — Collector** (see roadmap below): `play_events` + `collector_runs` migration, the
-   `collect-plays` Edge Function, `pg_cron` scheduling. Can be built + unit-tested without the
-   owner; deploying needs Supabase access.
+3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
+4. Then: Phase 3 stats (SQL aggregation over `play_events` + a Stats screen, everything labeled
+   "estimated").
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
@@ -204,8 +252,9 @@ Done (continued):
   total (PR #4). Local toolchain note: Xcode 16.0 is installed at `/Applications/Xcode.app` and
   active; 18 unit tests pass locally and in CI. Next agent starts at "Fill the screens" above.
 - 2026-06-10: "Fill the screens" built and VERIFIED with live data on the simulator (PR #6);
-  35 tests. Caught + fixed a real decode bug (sparse artist objects). Next agent starts at
-  "Verify fresh sign-in" / Phase 2 collector above.
+  35 tests. Caught + fixed a real decode bug (sparse artist objects). Same day: Phase 2 collector
+  code complete (PR #7) — migration, collect-plays function, 21 Deno tests, CI backend job.
+  NOT deployed; next agent starts at "Deploy the collector" above.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
@@ -269,7 +318,7 @@ SpotiStats/Views/                 RootGateView, SignInView, MainTabView, tab scr
 SpotiStats/Views/Components/      LoadableList, Rows, TimeRangePicker
 SpotiStatsTests/                  unit tests (+ Support/: mocks, fixtures, MockURLProtocol)
 supabase/migrations/              SQL schema + RLS
-supabase/functions/               Edge Functions (+ _shared)
+supabase/functions/               Edge Functions (+ _shared helpers, _tests Deno tests)
 .github/workflows/ci.yml          macOS CI: generate -> lint -> build -> test
 docs/SETUP.md                     full setup steps
 docs/HANDOFF.md                   this file
