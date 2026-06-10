@@ -18,12 +18,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { adminClient, jsonResponse } from "../_shared/http.ts";
 import { constantTimeEquals } from "../_shared/secrets.ts";
-import { decryptRefreshToken, encryptRefreshToken } from "../_shared/crypto.ts";
+import { mintAccessTokenFromStored } from "../_shared/credentials.ts";
 import {
     fetchRecentlyPlayed,
     type RecentlyPlayedPage,
-    refreshSpotifyAccessToken,
-    SpotifyAuthError,
     SpotifyRateLimitError,
 } from "../_shared/spotify.ts";
 import { idempotencyKey, playEventRow } from "../_shared/plays.ts";
@@ -124,42 +122,9 @@ Deno.serve(async (req: Request) => {
 
 /// Collects new plays for one user. Returns the number of NEW events inserted.
 async function collectForUser(admin: SupabaseClient, cred: CredentialRow): Promise<number> {
-    const refreshToken = await decryptRefreshToken(
-        cred.refresh_token_ciphertext,
-        cred.refresh_token_nonce,
-        cred.key_version,
-        cred.user_id,
-    );
-
-    let minted;
-    try {
-        minted = await refreshSpotifyAccessToken(refreshToken);
-    } catch (err) {
-        if (err instanceof SpotifyAuthError && err.code === "invalid_grant") {
-            await admin
-                .from("spotify_credentials")
-                .update({
-                    reauth_required: true,
-                    token_refresh_failed_at: new Date().toISOString(),
-                    last_error: `${err.code}: ${err.message}`,
-                })
-                .eq("user_id", cred.user_id);
-        }
-        throw err;
-    }
-
-    if (minted.newRefreshToken) {
-        const enc = await encryptRefreshToken(minted.newRefreshToken, cred.user_id);
-        await admin
-            .from("spotify_credentials")
-            .update({
-                refresh_token_ciphertext: enc.ciphertext,
-                refresh_token_nonce: enc.nonce,
-                key_version: enc.keyVersion,
-                encrypted_at: new Date().toISOString(),
-            })
-            .eq("user_id", cred.user_id);
-    }
+    // Rotation persistence + invalid_grant flagging happen inside the shared helper; any
+    // failure propagates to the per-user catch in the main loop.
+    const minted = await mintAccessTokenFromStored(admin, cred);
 
     const page = await fetchPageWithOneRetry(minted.accessToken, cred.last_collected_after_ms);
 
