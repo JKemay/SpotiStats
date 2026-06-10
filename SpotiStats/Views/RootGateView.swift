@@ -8,7 +8,7 @@ struct RootGateView: View {
 
     var body: some View {
         ZStack {
-            Theme.Colors.backgroundGradient.ignoresSafeArea()
+            NightCityBackground()
             content
         }
         .task { await model.start() }

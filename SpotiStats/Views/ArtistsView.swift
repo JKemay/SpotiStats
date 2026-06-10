@@ -8,7 +8,7 @@ struct ArtistsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.Colors.backgroundGradient.ignoresSafeArea()
+                NightCityBackground()
                 VStack(spacing: 0) {
                     TimeRangePicker(selection: $viewModel.selectedRange)
                     LoadableList(

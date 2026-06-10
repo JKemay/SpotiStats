@@ -8,7 +8,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.Colors.backgroundGradient.ignoresSafeArea()
+                NightCityBackground()
                 LoadableList(
                     state: viewModel.state,
                     emptyMessage: "Nothing played recently. Put something on and come back!",

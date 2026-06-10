@@ -11,7 +11,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.Colors.backgroundGradient.ignoresSafeArea()
+                NightCityBackground()
                 List {
                     Section("Account") {
                         Button(role: .destructive) {

@@ -232,6 +232,14 @@ Done (continued):
     (Deno 2.8 WebCrypto strictness) and union-narrowing in the two existing functions
     (`if (auth.error)` -> `if (auth.error !== null)`). No runtime behavior change.
 
+Done (continued):
+- [x] **Visual identity v1** (PR #9): `NightCityBackground` — the night gradient plus a
+  deterministic city skyline (seeded `SplitMix64`, so no shimmer between renders) and an
+  animated rain layer (`TimelineView` + `Canvas`; positions derived purely from elapsed time —
+  no per-frame state or allocations). Applied behind all five screens. Rain pauses under
+  Reduce Motion. Pure scene geometry lives in `DesignSystem/NightScene.swift` (unit-tested:
+  determinism + bounds; 39 tests total). Smoke layer + richer scene art remain Phase 4 polish.
+
 **Next up:**
 1. **Deploy the collector** (owner or agent with Supabase access — none of this is done):
    a. `supabase db push` (applies the play_events/collector_runs/cron migration).
