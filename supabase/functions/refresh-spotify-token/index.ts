@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
     const admin = adminClient();
 
     const auth = await requireUser(req, admin);
-    if (auth.error) return jsonResponse({ error: auth.error }, 401);
+    if (auth.error !== null) return jsonResponse({ error: auth.error }, 401);
 
     const { data: cred, error: loadError } = await admin
         .from("spotify_credentials")

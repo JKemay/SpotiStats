@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const admin = adminClient();
 
     const auth = await requireUser(req, admin);
-    if (auth.error) return jsonResponse({ error: auth.error }, 401);
+    if (auth.error !== null) return jsonResponse({ error: auth.error }, 401);
 
     let body: Body;
     try {

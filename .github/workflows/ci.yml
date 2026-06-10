@@ -10,6 +10,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  backend:
+    name: Backend (Deno)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Globs expand in bash: every function entrypoint, present and future.
+      - name: Type-check Edge Functions
+        run: deno check --no-lock */index.ts
+
+      - name: Test Edge Function logic
+        run: deno test --allow-env --no-lock _tests/
+
   build-test:
     name: Build & Test
     runs-on: macos-15

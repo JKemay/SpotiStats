@@ -51,3 +51,7 @@ supabase/.temp/
 
 # ---- Brainstorming companion (local only) ----
 .superpowers/
+
+# Deno local tooling (npm deps for type-checking Edge Functions)
+supabase/functions/node_modules/
+supabase/functions/deno.lock
