@@ -98,7 +98,10 @@ tokens. If Spotify returns a rotated refresh token, we re-encrypt and overwrite.
     `--no-verify-jwt`; it is gated by the `x-collector-secret` header instead (constant-time
     compare against the `COLLECT_PLAYS_SECRET` Edge secret; fails closed if unset).
   - Shared code in `supabase/functions/_shared/` (`crypto.ts`, `spotify.ts`, `http.ts`,
-    `plays.ts` — idempotency + row mapping, `secrets.ts` — constant-time compare).
+    `plays.ts` — idempotency + row mapping, `secrets.ts` — constant-time compare,
+    `credentials.ts` — the one mint-access-token flow: decrypt -> mint -> persist rotation ->
+    flag `invalid_grant`; used by refresh-spotify-token AND collect-plays so the rotation/dead-
+    token obligations can't drift apart).
   - Deno tests in `supabase/functions/_tests/` (`deno test --allow-env --no-lock _tests/` from
     `supabase/functions/`; CI runs them in the `backend` job).
 - **Edge Function secrets that must be set** (in the dashboard): `SPOTIFY_CLIENT_ID`,
@@ -254,7 +257,10 @@ Done (continued):
 - 2026-06-10: "Fill the screens" built and VERIFIED with live data on the simulator (PR #6);
   35 tests. Caught + fixed a real decode bug (sparse artist objects). Same day: Phase 2 collector
   code complete (PR #7) — migration, collect-plays function, 21 Deno tests, CI backend job.
-  NOT deployed; next agent starts at "Deploy the collector" above.
+  NOT deployed; next agent starts at "Deploy the collector" above. Follow-up the same day
+  (PR #8): extracted the duplicated mint/rotation/invalid_grant flow into
+  `_shared/credentials.ts` (behavior-preserving; both functions need a redeploy whenever the
+  owner runs the collector deploy step anyway).
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
