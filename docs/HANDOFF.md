@@ -239,6 +239,14 @@ Done (continued):
   no per-frame state or allocations). Applied behind all five screens. Rain pauses under
   Reduce Motion. Pure scene geometry lives in `DesignSystem/NightScene.swift` (unit-tested:
   determinism + bounds; 39 tests total). Smoke layer + richer scene art remain Phase 4 polish.
+- [x] **Phase 3.5 privacy backend — CODE COMPLETE, NOT DEPLOYED** (PR #10). Two new Edge
+  Functions matching PRIVACY.md exactly: `disconnect-spotify` (deletes the user's
+  `spotify_credentials` row — forgets the token AND stops collection, since the collector only
+  processes existing rows; idempotent; play history kept) and `delete-account` (one
+  `auth.admin.deleteUser` call — `profiles` / `spotify_credentials` / `play_events` all cascade
+  from `auth.users`, so the DB guarantees nothing is left behind; keep that cascade on any new
+  user table). Settings UI for both lands AFTER the functions are deployed, so the app never
+  ships buttons that 404.
 
 **Next up:**
 1. **Deploy the collector** (owner or agent with Supabase access — none of this is done):
@@ -246,7 +254,10 @@ Done (continued):
    b. Generate a strong secret; set Edge secret `COLLECT_PLAYS_SECRET` to it.
    c. Create Vault secrets `collect_plays_url` + `collect_plays_secret` (values in "Backend
       specifics" above).
-   d. `supabase functions deploy collect-plays --no-verify-jwt`.
+   d. `supabase functions deploy collect-plays --no-verify-jwt`. While deploying, also redeploy
+      `refresh-spotify-token` + `store-spotify-credentials` (shared-helper refactor, PR #8) and
+      deploy the new `disconnect-spotify` + `delete-account` (PR #10; normal JWT verification,
+      NO --no-verify-jwt for these two).
    e. Smoke test: `curl -X POST <url> -H "x-collector-secret: <secret>"` -> expect a JSON run
       summary; check `collector_runs` and `play_events` rows; confirm a second run inserts 0
       duplicates.
