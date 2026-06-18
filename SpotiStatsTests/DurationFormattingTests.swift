@@ -68,24 +68,24 @@ final class DurationFormattingTests: XCTestCase {
 
     // MARK: - Date extensions
 
-    func testShortDateLabel_format() {
+    func testShortDateLabel_format() throws {
         // Create a known date: June 18, 2026
         var components = DateComponents()
         components.year = 2026
         components.month = 6
         components.day = 18
-        let date = Calendar.current.date(from: components)!
+        let date = try XCTUnwrap(Calendar.current.date(from: components))
         XCTAssertEqual(date.shortDateLabel, "Jun 18")
     }
 
-    func testIsoDateString_format() {
+    func testIsoDateString_format() throws {
         // The ISO date string should match YYYY-MM-DD
         var components = DateComponents()
         components.year = 2026
         components.month = 1
         components.day = 5
         components.timeZone = TimeZone(identifier: "UTC")
-        let date = Calendar.current.date(from: components)!
+        let date = try XCTUnwrap(Calendar.current.date(from: components))
         XCTAssertEqual(date.isoDateString, "2026-01-05")
     }
 }
