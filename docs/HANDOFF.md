@@ -215,7 +215,7 @@ Done (continued):
     error+retry state renders; Settings renders.
 
 Done (continued):
-- [x] **Phase 2 collector — CODE COMPLETE, NOT DEPLOYED** (PR #7).
+- [x] **Phase 2 collector — built** (PR #7); deployed + proven live 2026-06-10 (see below).
   - Migration `20260610090000_play_events_and_collector.sql`: `play_events` (+ indexes
     `(user_id, played_at desc)` / `(user_id, track_id)`, unique `idempotency_key`),
     `collector_runs`, RLS, `pg_cron`/`pg_net` scheduling via `public.invoke_collect_plays()`.
@@ -239,33 +239,37 @@ Done (continued):
   no per-frame state or allocations). Applied behind all five screens. Rain pauses under
   Reduce Motion. Pure scene geometry lives in `DesignSystem/NightScene.swift` (unit-tested:
   determinism + bounds; 39 tests total). Smoke layer + richer scene art remain Phase 4 polish.
-- [x] **Phase 3.5 privacy backend — CODE COMPLETE, NOT DEPLOYED** (PR #10). Two new Edge
-  Functions matching PRIVACY.md exactly: `disconnect-spotify` (deletes the user's
-  `spotify_credentials` row — forgets the token AND stops collection, since the collector only
-  processes existing rows; idempotent; play history kept) and `delete-account` (one
-  `auth.admin.deleteUser` call — `profiles` / `spotify_credentials` / `play_events` all cascade
-  from `auth.users`, so the DB guarantees nothing is left behind; keep that cascade on any new
-  user table). Settings UI for both lands AFTER the functions are deployed, so the app never
-  ships buttons that 404.
+- [x] **Phase 3.5 privacy backend — built** (PR #10); deployed 2026-06-10. Two Edge Functions
+  matching PRIVACY.md exactly: `disconnect-spotify` (deletes the user's `spotify_credentials`
+  row — forgets the token AND stops collection, since the collector only processes existing rows;
+  idempotent; play history kept) and `delete-account` (one `auth.admin.deleteUser` call —
+  `profiles` / `spotify_credentials` / `play_events` all cascade from `auth.users`, so the DB
+  guarantees nothing is left behind; keep that cascade on any new user table). The functions are
+  deployed; **Settings UI for both is not built yet** (next-up item 2).
+
+Done (continued):
+- [x] **Phase 2 collector — DEPLOYED & LIVE (2026-06-10).** Migration applied to the remote DB,
+  all five Edge Functions deployed, `COLLECT_PLAYS_SECRET` + both Vault secrets
+  (`collect_plays_url`, `collect_plays_secret`) set, `pg_cron` running the collector every 10
+  minutes. PROVEN end-to-end: a manual invoke returned
+  `{"status":"success","processed":1,"inserted":50}` — decrypted the stored refresh token, minted
+  a fresh access token, fetched recently-played, and wrote 50 plays to `play_events`. Fresh
+  sign-in re-verified on the simulator after the refactors; Supabase **Site URL** set to
+  `spotistats://login-callback` (localhost dead-end gone).
+  - Deploy gotcha recorded: the remote migration history had the auth migration under a different
+    timestamp (`20260607002906`) than the repo file (`20260606213500`), so `db push` refused. Fix
+    was bookkeeping-only: `supabase migration repair --status reverted 20260607002906` +
+    `--status applied 20260606213500`, then `db push` applied only the collector migration.
 
 **Next up:**
-1. **Deploy the collector** (owner or agent with Supabase access — none of this is done):
-   a. `supabase db push` (applies the play_events/collector_runs/cron migration).
-   b. Generate a strong secret; set Edge secret `COLLECT_PLAYS_SECRET` to it.
-   c. Create Vault secrets `collect_plays_url` + `collect_plays_secret` (values in "Backend
-      specifics" above).
-   d. `supabase functions deploy collect-plays --no-verify-jwt`. While deploying, also redeploy
-      `refresh-spotify-token` + `store-spotify-credentials` (shared-helper refactor, PR #8) and
-      deploy the new `disconnect-spotify` + `delete-account` (PR #10; normal JWT verification,
-      NO --no-verify-jwt for these two).
-   e. Smoke test: `curl -X POST <url> -H "x-collector-secret: <secret>"` -> expect a JSON run
-      summary; check `collector_runs` and `play_events` rows; confirm a second run inserts 0
-      duplicates.
-2. **Verify fresh sign-in** (owner): sign out / fresh install, tap "Connect Spotify", confirm the
-   OAuth flow + `store-spotify-credentials` still succeed end-to-end after the refactor.
-3. **Cleanup:** resolve the Supabase Site URL / "Confirm email" dead-end noted above.
-4. Then: Phase 3 stats (SQL aggregation over `play_events` + a Stats screen, everything labeled
-   "estimated").
+1. **Phase 3 — Stats.** Now that `play_events` is filling, build SQL aggregation (views/RPC) over
+   it — estimated listening time, play counts, top-by-period, trends — and a Stats screen with
+   Swift Charts. Everything labeled "estimated"; keep Spotify's affinity windows (Tracks/Artists)
+   visually separate from app-collected stats.
+2. **Phase 3.5 UI.** Wire Settings buttons for the now-deployed `disconnect-spotify` /
+   `delete-account` functions (with confirm dialogs + the Spotify "Apps with access" link).
+3. **Phase 4 polish.** Smoke layer over the night scene; broaden tests; README + screenshots;
+   pick the neutral public app name (the "SpotiStats" codename can't ship — Spotify branding).
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
@@ -275,8 +279,10 @@ Done (continued):
   active; 18 unit tests pass locally and in CI. Next agent starts at "Fill the screens" above.
 - 2026-06-10: "Fill the screens" built and VERIFIED with live data on the simulator (PR #6);
   35 tests. Caught + fixed a real decode bug (sparse artist objects). Same day: Phase 2 collector
-  code complete (PR #7) — migration, collect-plays function, 21 Deno tests, CI backend job.
-  NOT deployed; next agent starts at "Deploy the collector" above. Follow-up the same day
+  (PR #7), shared-credentials refactor (PR #8), night-city scene (PR #9), privacy backend (PR #10)
+  — all merged with CI green; 39 Swift + 21 Deno tests. **Then deployed the whole backend to
+  Supabase and proved the collector live** (manual invoke inserted 50 plays; cron wired via Vault;
+  fresh sign-in re-verified; Site URL fixed). Next agent starts at Phase 3 stats. Follow-up the same day
   (PR #8): extracted the duplicated mint/rotation/invalid_grant flow into
   `_shared/credentials.ts` (behavior-preserving; both functions need a redeploy whenever the
   owner runs the collector deploy step anyway).
