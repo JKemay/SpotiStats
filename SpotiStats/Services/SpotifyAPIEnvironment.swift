@@ -16,6 +16,20 @@ extension EnvironmentValues {
     }
 }
 
+/// Injects a `StatsProviding` into the SwiftUI environment (same rationale as `spotifyAPI`:
+/// the live provider wraps a non-`@Observable` Supabase client). Built from `AuthService`'s
+/// authenticated client and injected by `RootGateView` in the signed-in branch.
+private struct StatsProviderKey: EnvironmentKey {
+    static let defaultValue: any StatsProviding = UnconfiguredStatsProvider()
+}
+
+extension EnvironmentValues {
+    var statsProvider: any StatsProviding {
+        get { self[StatsProviderKey.self] }
+        set { self[StatsProviderKey.self] = newValue }
+    }
+}
+
 /// The default environment value: every call fails loudly.
 ///
 /// Hitting this means a view was shown without `RootGateView` injecting the live client
