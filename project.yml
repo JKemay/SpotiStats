@@ -50,7 +50,9 @@ targets:
     info:
       path: SpotiStats/Resources/Info.generated.plist
       properties:
-        CFBundleDisplayName: SpotiStats
+        # Public display name (home-screen + in-app). Internal codename stays "SpotiStats"
+        # (bundle id, Xcode project, Supabase ref). See SpotiStats/App/AppInfo.swift.
+        CFBundleDisplayName: Nocturne
         UILaunchScreen: {}
         # Read at runtime via Bundle.main.object(forInfoDictionaryKey:).
         SUPABASE_PROJECT_REF: $(SUPABASE_PROJECT_REF)

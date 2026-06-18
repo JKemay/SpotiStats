@@ -39,12 +39,13 @@ No social features, no full history import.
 - **Encoding:** all text files are UTF-8; keep docs ASCII-safe.
 - **Linting:** CI runs `swiftlint --strict`, so warnings fail the build. Avoid force-unwraps/`try!`
   (disable inline with `// swiftlint:disable:this` only where truly unavoidable).
-- **Naming:** "SpotiStats" is a codename (Spotify branding rules disallow public app names
-  containing "Spotify" or starting with "Spot"). **Public name chosen: "Nocturne"** (owner pick,
-  2026-06-17 — a nocturne is a night-themed musical piece, fitting the lo-fi night-city scene).
-  NOT yet applied in code: the display name still reads "SpotiStats" (`CFBundleDisplayName` in
-  `project.yml`, one place). The bundle id / Supabase project ref / OAuth scheme stay as-is;
-  only the user-facing display name + README change. Do the rename as part of Phase 4 polish.
+- **Naming:** "SpotiStats" is the internal codename (Spotify branding rules disallow public app
+  names containing "Spotify" or starting with "Spot"). **Public display name: "Nocturne"** (owner
+  pick, 2026-06-17 — a nocturne is a night-themed musical piece, fitting the lo-fi night-city
+  scene), APPLIED in code as of PR #13: `AppInfo.name` is the single source for in-app copy and
+  `CFBundleDisplayName` is `Nocturne`. The codename intentionally remains in repo paths, the
+  Xcode project/scheme, the bundle id (`com.spotistats.SpotiStats`), the Supabase project ref,
+  and the OAuth scheme — none of those change.
 
 ---
 

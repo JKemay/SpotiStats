@@ -41,7 +41,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .confirmationDialog(
-                "Sign out of SpotiStats?",
+                "Sign out of \(AppInfo.name)?",
                 isPresented: $confirmingSignOut,
                 titleVisibility: .visible
             ) {
