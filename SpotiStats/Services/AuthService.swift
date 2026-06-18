@@ -29,11 +29,18 @@ final class AuthService {
 
     private let client: SupabaseClient
     private let backend: SpotifyCredentialsBackend
+    private let privacyBackend: PrivacyBackend
     private let config: AppConfig
 
-    init(client: SupabaseClient, backend: SpotifyCredentialsBackend, config: AppConfig) {
+    init(
+        client: SupabaseClient,
+        backend: SpotifyCredentialsBackend,
+        privacyBackend: PrivacyBackend,
+        config: AppConfig
+    ) {
         self.client = client
         self.backend = backend
+        self.privacyBackend = privacyBackend
         self.config = config
         self.tokenProvider = SpotifyTokenProvider(backend: backend)
         self.statsProvider = LiveStatsProvider(client: client)
@@ -44,7 +51,8 @@ final class AuthService {
         let config = try AppConfig.loadFromBundle()
         let client = Backend.makeClient(config)
         let backend = LiveSpotifyCredentialsBackend(client: client)
-        return AuthService(client: client, backend: backend, config: config)
+        let privacyBackend = LivePrivacyBackend(client: client)
+        return AuthService(client: client, backend: backend, privacyBackend: privacyBackend, config: config)
     }
 
     /// On launch: reflect whether supabase-swift restored a persisted session from the Keychain.
@@ -69,10 +77,12 @@ final class AuthService {
         defer { isWorking = false }
 
         do {
-            var session = try await signIn(forceConsent: false)
-            if session.providerRefreshToken == nil {
-                session = try await signIn(forceConsent: true)
-            }
+            // ALWAYS force Spotify's auth dialog (`show_dialog=true`). Without it, signing out and
+            // reconnecting silently re-uses Spotify's web session — re-binding the SAME account
+            // with no chance to switch. Forcing the dialog lets the user confirm or pick a
+            // different account, and guarantees Spotify returns a `provider_refresh_token` (it
+            // only issues one on fresh consent), so the old nil-token fallback is unnecessary.
+            let session = try await signIn(forceConsent: true)
             guard let refreshToken = session.providerRefreshToken else {
                 throw AuthError.missingRefreshToken
             }
@@ -90,6 +100,41 @@ final class AuthService {
         try? await client.auth.signOut()
         tokenProvider.clear()
         state = .signedOut
+    }
+
+    /// "Disconnect & forget credentials": delete the stored Spotify refresh token server-side
+    /// (which also stops collection), then sign out locally so the app returns to the connect
+    /// screen — reconnecting re-runs the OAuth handoff. Play history is kept on the server.
+    func disconnectSpotify() async {
+        guard !isWorking else { return }
+        isWorking = true
+        lastError = nil
+        defer { isWorking = false }
+        do {
+            try await privacyBackend.disconnectSpotify()
+            try? await client.auth.signOut()
+            tokenProvider.clear()
+            state = .signedOut
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    /// "Delete account": permanently wipe the user's data + auth user server-side, then sign out.
+    /// Irreversible; the session is invalid the moment the function succeeds.
+    func deleteAccount() async {
+        guard !isWorking else { return }
+        isWorking = true
+        lastError = nil
+        defer { isWorking = false }
+        do {
+            try await privacyBackend.deleteAccount()
+            try? await client.auth.signOut()
+            tokenProvider.clear()
+            state = .signedOut
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
     private func signIn(forceConsent: Bool) async throws -> Session {

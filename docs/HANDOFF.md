@@ -298,28 +298,45 @@ Done (continued):
   repeat" highlight (`stats_top_tracks` days=7 limit=1), and a recently-played **carousel** from
   a new `recentPlays(limit:)` (a plain RLS-scoped `play_events` select via `CollectedPlay`).
   `HomeViewModel` now drives a `HomeDashboard` off `statsProvider` (not `spotifyAPI`). Extracted
-  shared `StatTile`/`SectionCard`/`PlayCountBadge` into `Views/Components/StatsComponents.swift`
-  (reused by Stats + Home). Also bumped Tracks/Artists to Spotify's max **50** per request (was
-  20 — Spotify's hard cap for top-items). VERIFIED live on the simulator (58 plays this week,
-  on-repeat + carousel render from real data). 56 tests (+ Home dashboard, CollectedPlay decode/
-  fractional-timestamp). NOTE: `SpotifyAPI.recentlyPlayed` is now unused by the app (Home moved
-  to collected data) but kept on the client + tested.
+  shared `StatTile`/`SectionCard`/`PlayCountBadge` into `Views/Components/StatsComponents.swift`.
+  Bumped Tracks/Artists to Spotify's max **50** per request. Verified live. `SpotifyAPI.recentlyPlayed`
+  is now unused by the app but kept on the client + tested.
+
+- [x] **Phase 3.5 — privacy UI + account-switch fix** (PR #15). `PrivacyBackend` +
+  `LivePrivacyBackend` call the deployed `disconnect-spotify` / `delete-account` Edge Functions;
+  `AuthService.disconnectSpotify()` / `deleteAccount()` invoke them then sign out locally (both
+  land on the Connect screen). Settings "Privacy & data" section: Disconnect Spotify, a "Manage
+  access on Spotify" link, and Delete Account — each behind a confirmation dialog. **Owner
+  verified Disconnect works (2026-06-17).** Bundled fix: `connectSpotify()` now ALWAYS forces the
+  Spotify dialog (`show_dialog=true`) instead of the silent-then-fallback flow — fixes a bug where
+  signing out and reconnecting silently re-used Spotify's web session (no account switch possible)
+  and also guarantees a `provider_refresh_token`. STILL TODO (owner): test Delete Account on a
+  throwaway account now that account-switching works (irreversible).
 
 **Next up:**
-1. **Verify + merge the privacy UI (PR #15, DRAFT)** — owner action: test Disconnect + Delete
-   Account on the simulator (destructive; verify against a throwaway account for delete), then
-   mark ready + merge.
-2. **More Home/Stats ideas the owner is interested in** (raised 2026-06-17; only "Home dashboard"
-   was picked for this round — these are the deferred rest):
-   - **Top Albums** from collected plays (Spotify has no top-albums endpoint; derive from
-     `play_events` album_name/album_art_url). Placement TBD (Stats section vs new tab — note the
-     5-tab bar is full, so likely a Stats section).
-   - **Collected "all-time" tops** — a toggle on Tracks/Artists between Spotify's affinity ranking
-     (max 50) and the user's actual play counts from `play_events` (uncapped).
-   - **Listening insights** — time-of-day/weekday heatmap, "on repeat" expansion, listening
-     streaks (all derivable from `play_events.played_at`).
-3. **Phase 4 polish (remaining).** Broaden tests, README screenshots (owner: contains real
-   listening data — get consent before committing), app-icon art.
+1. **Test Delete Account** (owner) on a throwaway Spotify account — now reachable thanks to the
+   account-switch fix. Disconnect is already verified.
+2. **Owner's feature wishlist** (2026-06-17 — build when asked):
+   - **Top Albums** from collected plays (Spotify has NO top-albums endpoint; derive from
+     `play_events` album_name/album_art_url). Likely a Stats section (the 5-tab bar is full).
+   - **Listening clock / heatmap** — plays by hour-of-day and weekday (from `play_events.played_at`).
+   - **Streaks** — consecutive days with listening.
+   - **Shareable stat cards** — render a nice image of the user's week (portfolio piece).
+   - **Collected "all-time" tops** — Tracks/Artists toggle: Spotify affinity (max 50) vs our
+     uncapped play counts.
+   - ("On repeat" = most-played last 7 days is ALREADY on the Home dashboard.)
+   - **AI "DJ"** — later/stretch.
+3. **App Store / TestFlight path** (owner asked 2026-06-17). Blockers before real users:
+   - Apple Developer Program ($99/yr); app icon art; a few polished screenshots.
+   - **Spotify quota:** the Spotify app is in Development Mode (max 25 users, each added by email in
+     the Spotify dashboard). TestFlight works in Dev Mode if testers' Spotify emails are added.
+     Public App Store launch needs Spotify **Extended Quota Mode** (a Spotify review) + compliance
+     with Spotify Developer ToS / design guidelines (attribution, "Powered by Spotify", don't imply
+     endorsement, don't modify content).
+   - **Fastest feedback loop = TestFlight** (internal testing has no App Review; external testing
+     is a lighter review than full release). Recommended first step.
+4. **Phase 4 polish (remaining).** Broaden tests, README screenshots (contain real listening data —
+   get consent before committing), app-icon art.
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
