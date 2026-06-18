@@ -52,6 +52,24 @@ enum NightScene {
         let length: Double
     }
 
+    /// One soft drifting smoke/fog puff, in unit coordinates. Rendered as a low-opacity radial
+    /// gradient that drifts horizontally; the renderer derives x from elapsed time.
+    ///
+    /// Smoke is the scene's deliberately *swappable* element (see HANDOFF Phase 4): it can be
+    /// toned down or replaced for age-rating flexibility without touching the rest of the scene.
+    struct SmokePuff: Equatable {
+        /// Vertical center as a fraction of height (kept low, hugging the skyline).
+        let y: Double
+        /// Puff radius as a fraction of width.
+        let radius: Double
+        /// Horizontal drift in screen-widths per second; sign sets direction.
+        let speed: Double
+        /// 0..<1 phase offset so puffs don't share a starting x.
+        let phase: Double
+        /// Peak opacity at the puff's center.
+        let opacity: Double
+    }
+
     /// Deterministic skyline: `count` buildings tiled left-to-right with slight overlap, varied
     /// heights, and sparse lit windows. Same seed -> identical skyline.
     static func buildings(count: Int = 9, seed: UInt64 = 0xCAFE) -> [Building] {
@@ -91,6 +109,22 @@ enum NightScene {
                 phase: Double.random(in: 0..<1, using: &rng),
                 speed: 0.55 + 0.75 * depth,
                 length: 0.025 + 0.045 * depth
+            )
+        }
+    }
+
+    /// Deterministic smoke field: a few large, slow, very-low-opacity puffs hugging the skyline,
+    /// drifting in alternating directions. Same seed -> identical field.
+    static func smoke(count: Int = 5, seed: UInt64 = 0x5310) -> [SmokePuff] {
+        var rng = SeededGenerator(seed: seed)
+        return (0..<count).map { index in
+            SmokePuff(
+                y: Double.random(in: 0.58...0.92, using: &rng),
+                radius: Double.random(in: 0.20...0.40, using: &rng),
+                // Alternate drift direction by index so the field never all slides one way.
+                speed: Double.random(in: 0.010...0.035, using: &rng) * (index.isMultiple(of: 2) ? 1 : -1),
+                phase: Double.random(in: 0..<1, using: &rng),
+                opacity: Double.random(in: 0.05...0.11, using: &rng)
             )
         }
     }
