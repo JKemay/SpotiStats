@@ -24,6 +24,9 @@ final class AuthService {
     /// The token source for `SpotifyAPIClient` (memory-only access tokens).
     let tokenProvider: SpotifyTokenProvider
 
+    /// Reads the user's collected listening stats (Phase 3) via the authenticated client.
+    let statsProvider: StatsProviding
+
     private let client: SupabaseClient
     private let backend: SpotifyCredentialsBackend
     private let config: AppConfig
@@ -33,6 +36,7 @@ final class AuthService {
         self.backend = backend
         self.config = config
         self.tokenProvider = SpotifyTokenProvider(backend: backend)
+        self.statsProvider = LiveStatsProvider(client: client)
     }
 
     /// Build the live service from the bundled config.

@@ -3,7 +3,7 @@ import SwiftUI
 /// The app's root navigation shell: a tab bar over the three data screens plus Settings.
 struct MainTabView: View {
     enum Tab: String {
-        case home, tracks, artists, settings
+        case home, tracks, artists, stats, settings
     }
 
     @State private var selection: Tab = MainTabView.initialTab
@@ -21,6 +21,10 @@ struct MainTabView: View {
             ArtistsView()
                 .tabItem { Label("Artists", systemImage: "person.2.fill") }
                 .tag(Tab.artists)
+
+            StatsView()
+                .tabItem { Label("Stats", systemImage: "chart.bar.fill") }
+                .tag(Tab.stats)
 
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }

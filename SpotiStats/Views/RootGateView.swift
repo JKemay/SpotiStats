@@ -37,6 +37,7 @@ struct RootGateView: View {
             MainTabView()
                 .environment(auth)
                 .environment(\.spotifyAPI, model.spotifyAPI)
+                .environment(\.statsProvider, auth.statsProvider)
         }
     }
 

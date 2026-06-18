@@ -39,9 +39,12 @@ No social features, no full history import.
 - **Encoding:** all text files are UTF-8; keep docs ASCII-safe.
 - **Linting:** CI runs `swiftlint --strict`, so warnings fail the build. Avoid force-unwraps/`try!`
   (disable inline with `// swiftlint:disable:this` only where truly unavoidable).
-- **Naming caveat:** "SpotiStats" is a codename. Spotify branding rules disallow public app names
-  containing "Spotify" or starting with "Spot". Pick a neutral public name before any README
-  screenshots / release. Keep the display name in one place so the swap is cheap.
+- **Naming:** "SpotiStats" is a codename (Spotify branding rules disallow public app names
+  containing "Spotify" or starting with "Spot"). **Public name chosen: "Nocturne"** (owner pick,
+  2026-06-17 — a nocturne is a night-themed musical piece, fitting the lo-fi night-city scene).
+  NOT yet applied in code: the display name still reads "SpotiStats" (`CFBundleDisplayName` in
+  `project.yml`, one place). The bundle id / Supabase project ref / OAuth scheme stay as-is;
+  only the user-facing display name + README change. Do the rename as part of Phase 4 polish.
 
 ---
 
@@ -89,6 +92,10 @@ tokens. If Spotify returns a rotated refresh token, we re-encrypt and overwrite.
     unique). Owner-readable via RLS (select only); only the service role writes.
   - `collector_runs` — collector observability (status/counters/error summary per run).
     Service-role only.
+  - **Stats RPCs** (migration `20260617213000_stats_functions.sql`): `stats_overview`,
+    `stats_top_tracks`, `stats_top_artists`, `stats_daily` — `security invoker` so the
+    `play_events` owner-select RLS scopes every aggregation to the caller; `p_days => null`
+    means all collected history. Called from the app via PostgREST `rpc`.
   - (The `rls_enabled_no_policy` advisors on `spotify_credentials` / `collector_runs` are
     intentional.)
 - **Edge Functions (`supabase/functions/`):**
@@ -261,15 +268,29 @@ Done (continued):
     was bookkeeping-only: `supabase migration repair --status reverted 20260607002906` +
     `--status applied 20260606213500`, then `db push` applied only the collector migration.
 
+Done (continued):
+- [x] **Phase 3 — Stats: BUILT + DEPLOYED + VERIFIED LIVE (2026-06-17)** (PR #12). Migration
+  `20260617213000_stats_functions.sql` adds four `security invoker` RPCs over `play_events`
+  (RLS-scoped to the caller): `stats_overview`, `stats_top_tracks` (latest-snapshot display via
+  `DISTINCT ON`), `stats_top_artists` (unnest of `artist_names`), `stats_daily`. Date/timestamp
+  fields are returned as explicit UTC strings (Swift parses them — no client date-strategy
+  dependency). Swift side: `StatsModels`, `StatsProviding` + `LiveStatsProvider` (PostgREST
+  `rpc`), exposed as `auth.statsProvider` + injected via `@Environment(\.statsProvider)`;
+  `StatsViewModel` loads the four RPCs concurrently for the selected window (7d / 30d / all);
+  `StatsView` (new 5th tab) with Swift Charts daily-plays bar chart, summary tiles, top
+  tracks/artists, honest "estimated / since you connected" caption + a gathering empty state.
+  **Deployed to remote** (`supabase db push`) and **verified on the simulator against real
+  collected data**: 50 plays, 2h44m est. listening, 19 tracks / 29 artists, chart + lists render.
+  51 tests (was 39; +12 stats: VM load/period/empty/failure, formatting, RPC-JSON decoding).
+  - Deploy note: the first push failed (`array_agg` over the `text[]` `artist_names` column makes
+    a multidim array — return-type mismatch); fixed with the `DISTINCT ON` snapshot approach.
+
 **Next up:**
-1. **Phase 3 — Stats.** Now that `play_events` is filling, build SQL aggregation (views/RPC) over
-   it — estimated listening time, play counts, top-by-period, trends — and a Stats screen with
-   Swift Charts. Everything labeled "estimated"; keep Spotify's affinity windows (Tracks/Artists)
-   visually separate from app-collected stats.
-2. **Phase 3.5 UI.** Wire Settings buttons for the now-deployed `disconnect-spotify` /
-   `delete-account` functions (with confirm dialogs + the Spotify "Apps with access" link).
-3. **Phase 4 polish.** Smoke layer over the night scene; broaden tests; README + screenshots;
-   pick the neutral public app name (the "SpotiStats" codename can't ship — Spotify branding).
+1. **Phase 3.5 UI.** Wire Settings buttons for the deployed `disconnect-spotify` /
+   `delete-account` functions (confirm dialogs + the Spotify "Apps with access" link). Add a
+   `PrivacyBackend` (like the others) calling those Edge Functions; on delete success, sign out.
+2. **Phase 4 polish.** Rename the display name to **Nocturne** (`CFBundleDisplayName` in
+   `project.yml`); smoke layer over the night scene; broaden tests; README + screenshots.
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
@@ -282,7 +303,10 @@ Done (continued):
   (PR #7), shared-credentials refactor (PR #8), night-city scene (PR #9), privacy backend (PR #10)
   — all merged with CI green; 39 Swift + 21 Deno tests. **Then deployed the whole backend to
   Supabase and proved the collector live** (manual invoke inserted 50 plays; cron wired via Vault;
-  fresh sign-in re-verified; Site URL fixed). Next agent starts at Phase 3 stats. Follow-up the same day
+  fresh sign-in re-verified; Site URL fixed).
+- 2026-06-17: Phase 3 stats built, deployed (`stats_functions` migration), and VERIFIED live on
+  the simulator with real collected data (PR #12); 51 tests. Public app name chosen: **Nocturne**
+  (not yet applied in code). Next agent starts at Phase 3.5 Settings UI / Phase 4 polish. Follow-up the same day
   (PR #8): extracted the duplicated mint/rotation/invalid_grant flow into
   `_shared/credentials.ts` (behavior-preserving; both functions need a redeploy whenever the
   owner runs the collector deploy step anyway).
