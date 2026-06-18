@@ -56,4 +56,26 @@ final class NightSceneTests: XCTestCase {
             XCTAssertTrue((0.025...0.07).contains(drop.length))
         }
     }
+
+    func testSmokeIsDeterministicAndInBounds() {
+        let first = NightScene.smoke()
+        let second = NightScene.smoke()
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(first.count, 5)
+
+        for puff in first {
+            XCTAssertTrue((0.58...0.92).contains(puff.y))
+            XCTAssertTrue((0.20...0.40).contains(puff.radius))
+            XCTAssertTrue((0.010...0.035).contains(abs(puff.speed))) // magnitude; sign alternates
+            XCTAssertTrue((0.0..<1.0).contains(puff.phase))
+            XCTAssertTrue((0.05...0.11).contains(puff.opacity))
+        }
+    }
+
+    func testSmokeDriftsInBothDirections() {
+        // Alternating-by-index signs mean the field never all slides one way.
+        let puffs = NightScene.smoke()
+        XCTAssertTrue(puffs.contains { $0.speed > 0 })
+        XCTAssertTrue(puffs.contains { $0.speed < 0 })
+    }
 }

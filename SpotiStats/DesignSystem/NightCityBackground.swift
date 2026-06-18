@@ -1,25 +1,29 @@
 import SwiftUI
 
-/// The app's signature backdrop: the night gradient, a deterministic city skyline, and an
-/// animated rain layer. Drop this behind any screen (it ignores safe areas itself).
+/// The app's signature backdrop: the night gradient, drifting smoke, a deterministic city
+/// skyline, and an animated rain layer. Drop this behind any screen (it ignores safe areas).
 ///
-/// Performance notes: the skyline `Canvas` re-renders only on size changes; the rain `Canvas`
-/// animates via `TimelineView` but derives every drop position from elapsed time over a fixed,
-/// precomputed field — no per-frame state mutation or allocations beyond one stroked path.
-/// Rain pauses entirely under Reduce Motion.
+/// Performance notes: the skyline `Canvas` re-renders only on size changes; the smoke and rain
+/// `Canvas` layers animate via `TimelineView` but derive every position from elapsed time over
+/// fixed, precomputed fields — no per-frame state mutation. Under Reduce Motion the smoke is
+/// drawn once (static) and the rain is omitted entirely.
 struct NightCityBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let buildings = NightScene.buildings()
     private static let raindrops = NightScene.raindrops()
+    private static let smokePuffs = NightScene.smoke()
 
     var body: some View {
         ZStack {
             Theme.Colors.backgroundGradient
 
+            // Smoke sits behind the skyline so buildings cut crisp silhouettes through the haze.
+            smoke
+
             skyline
 
-            // Reduce Motion gets the calm version: skyline only, no falling rain.
+            // Reduce Motion gets the calm version: static smoke + skyline, no falling rain.
             if !reduceMotion {
                 rain
             }
@@ -59,6 +63,44 @@ struct NightCityBackground: View {
             }
         }
         .opacity(0.85)
+    }
+
+    private var smoke: some View {
+        TimelineView(.animation(paused: reduceMotion)) { timeline in
+            Canvas { context, size in
+                let time = timeline.date.timeIntervalSinceReferenceDate
+                let tint = Theme.Colors.accentBlue
+
+                for puff in Self.smokePuffs {
+                    // Drift horizontally and wrap; drawing one wrap-around copy keeps the loop
+                    // seamless as a puff exits one edge and re-enters the other.
+                    let centerY = puff.y * size.height
+                    let radius = puff.radius * size.width
+                    let base = (puff.phase + time * puff.speed).truncatingRemainder(dividingBy: 1)
+                    let wrapped = base < 0 ? base + 1 : base
+
+                    for offset in [-1.0, 0.0] {
+                        let centerX = (wrapped + offset) * size.width
+                        let rect = CGRect(
+                            x: centerX - radius,
+                            y: centerY - radius,
+                            width: radius * 2,
+                            height: radius * 2
+                        )
+                        context.fill(
+                            Path(ellipseIn: rect),
+                            with: .radialGradient(
+                                Gradient(colors: [tint.opacity(puff.opacity), .clear]),
+                                center: CGPoint(x: centerX, y: centerY),
+                                startRadius: 0,
+                                endRadius: radius
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        .blendMode(.plusLighter)
     }
 
     private var rain: some View {

@@ -285,12 +285,21 @@ Done (continued):
   - Deploy note: the first push failed (`array_agg` over the `text[]` `artist_names` column makes
     a multidim array — return-type mismatch); fixed with the `DISTINCT ON` snapshot approach.
 
+- [x] **Phase 4 — drifting smoke layer** (PR #14): added `NightScene.smoke()` (seeded, drifting
+  low-opacity puffs hugging the skyline, alternating directions) rendered as a `plusLighter`
+  radial-gradient `Canvas` behind the skyline in `NightCityBackground`. Animates off elapsed time
+  (no per-frame state); drawn static under Reduce Motion. Smoke is the deliberately *swappable*
+  scene element (age-rating flexibility). 53 tests (+2: smoke determinism/bounds + bidirectional
+  drift). Verified on the simulator.
+
 **Next up:**
 1. **Phase 3.5 UI.** Wire Settings buttons for the deployed `disconnect-spotify` /
    `delete-account` functions (confirm dialogs + the Spotify "Apps with access" link). Add a
    `PrivacyBackend` (like the others) calling those Edge Functions; on delete success, sign out.
-2. **Phase 4 polish.** Rename the display name to **Nocturne** (`CFBundleDisplayName` in
-   `project.yml`); smoke layer over the night scene; broaden tests; README + screenshots.
+   NOTE: verify the destructive paths WITH the owner (they wipe real data) — don't execute-test
+   them autonomously.
+2. **Phase 4 polish (remaining).** Display-name rename to **Nocturne** is in PR #13. Still to do:
+   broaden tests, README screenshots, app-icon art.
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
