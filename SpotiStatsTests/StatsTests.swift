@@ -149,4 +149,28 @@ final class StatsTests: XCTestCase {
         XCTAssertEqual(track.artistNames, ["EDEN"])
         XCTAssertEqual(track.playCount, 7)
     }
+
+    func testCollectedPlayDecodesFromPlayEventsRow() throws {
+        // Mirrors a raw play_events select (snake_case; timestamptz with fractional seconds).
+        let json = """
+        {
+          "id": 1234,
+          "played_at": "2026-06-17T20:00:00.123456+00:00",
+          "track_name": "Nocturne",
+          "artist_names": ["EDEN"],
+          "album_name": "Vertigo",
+          "album_art_url": "https://img/nocturne",
+          "explicit": false
+        }
+        """
+        let play = try JSONDecoder().decode(CollectedPlay.self, from: Data(json.utf8))
+        XCTAssertEqual(play.id, 1234)
+        XCTAssertEqual(play.trackName, "Nocturne")
+        XCTAssertEqual(play.artistsDisplay, "EDEN")
+        XCTAssertNotNil(play.playedAtDate) // fractional-second timestamp parses
+    }
+
+    func testCollectedPlayParsesWholeSecondTimestamp() {
+        XCTAssertNotNil(StatsSamples.recentPlay.playedAtDate) // "...T20:00:00Z" (no fraction)
+    }
 }

@@ -14,7 +14,8 @@ final class TracksViewModel {
     func load(using api: any SpotifyAPI) async {
         state = .loading
         do {
-            state = .loaded(try await api.topTracks(range: selectedRange))
+            // 50 is Spotify's per-request maximum for the top-items endpoint.
+            state = .loaded(try await api.topTracks(range: selectedRange, limit: 50))
         } catch {
             state = .failed(UserFacingError.message(for: error))
         }

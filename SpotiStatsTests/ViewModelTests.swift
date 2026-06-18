@@ -2,30 +2,54 @@ import XCTest
 @testable import SpotiStats
 
 /// Each tab's view model must reach `.loaded` on success and `.failed` (with a friendly message)
-/// on error. The API is the scriptable `MockSpotifyAPI`, so no networking is involved.
+/// on error. Tracks/Artists use the scriptable `MockSpotifyAPI`; Home (a dashboard over our own
+/// collected data) uses `MockStatsProvider`. No networking is involved.
 final class ViewModelTests: XCTestCase {
 
-    // MARK: Home
+    // MARK: Home (dashboard over collected data)
 
     @MainActor
-    func testHomeLoadSuccess() async {
-        let api = MockSpotifyAPI()
-        api.recentlyPlayedResult = .success([SampleModels.playHistoryItem])
+    func testHomeLoadSuccessAssemblesDashboard() async {
+        let provider = MockStatsProvider()
+        provider.overviewResult = .success(StatsSamples.overview)
+        provider.topTracksResult = .success([StatsSamples.track])
+        provider.recentPlaysResult = .success([StatsSamples.recentPlay])
         let viewModel = HomeViewModel()
 
-        await viewModel.load(using: api)
+        await viewModel.load(using: provider)
 
-        XCTAssertEqual(viewModel.state, .loaded([SampleModels.playHistoryItem]))
-        XCTAssertEqual(api.recentlyPlayedCallCount, 1)
+        guard case .loaded(let dashboard) = viewModel.state else {
+            return XCTFail("Expected .loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(dashboard.week, StatsSamples.overview)
+        XCTAssertEqual(dashboard.onRepeat, StatsSamples.track)   // first of topTracks(days:7, limit:1)
+        XCTAssertEqual(dashboard.recent, [StatsSamples.recentPlay])
+        XCTAssertEqual(provider.requestedOverviewDays, [7])      // this-week snapshot
+        XCTAssertEqual(provider.requestedTopTrackDays, [7])      // on-repeat window
+        XCTAssertEqual(provider.requestedRecentLimits, [25])
+    }
+
+    @MainActor
+    func testHomeEmptyDataStaysLoadedForGatheringState() async {
+        let provider = MockStatsProvider() // all defaults: empty overview, no recent
+        let viewModel = HomeViewModel()
+
+        await viewModel.load(using: provider)
+
+        guard case .loaded(let dashboard) = viewModel.state else {
+            return XCTFail("Expected .loaded, got \(viewModel.state)")
+        }
+        XCTAssertTrue(dashboard.isEmpty)
+        XCTAssertNil(dashboard.onRepeat)
     }
 
     @MainActor
     func testHomeLoadFailureIsOfflineFriendly() async {
-        let api = MockSpotifyAPI()
-        api.recentlyPlayedResult = .failure(URLError(.notConnectedToInternet))
+        let provider = MockStatsProvider()
+        provider.recentPlaysResult = .failure(URLError(.notConnectedToInternet))
         let viewModel = HomeViewModel()
 
-        await viewModel.load(using: api)
+        await viewModel.load(using: provider)
 
         XCTAssertEqual(viewModel.state, .failed("You're offline. Check your connection and retry."))
     }
@@ -85,26 +109,29 @@ final class ViewModelTests: XCTestCase {
     // MARK: Reload after failure
 
     @MainActor
-    func testReloadAfterFailureRecovers() async {
-        let api = MockSpotifyAPI()
-        api.recentlyPlayedResult = .failure(URLError(.timedOut))
+    func testHomeReloadAfterFailureRecovers() async {
+        let provider = MockStatsProvider()
+        provider.recentPlaysResult = .failure(URLError(.timedOut))
         let viewModel = HomeViewModel()
 
-        await viewModel.load(using: api)
+        await viewModel.load(using: provider)
         XCTAssertEqual(viewModel.state, .failed("The request timed out. Please retry."))
 
-        api.recentlyPlayedResult = .success([SampleModels.playHistoryItem])
-        await viewModel.load(using: api)
-        XCTAssertEqual(viewModel.state, .loaded([SampleModels.playHistoryItem]))
+        provider.recentPlaysResult = .success([StatsSamples.recentPlay])
+        await viewModel.load(using: provider)
+        guard case .loaded(let dashboard) = viewModel.state else {
+            return XCTFail("Expected .loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(dashboard.recent, [StatsSamples.recentPlay])
     }
 
     // MARK: Unconfigured default
 
     @MainActor
-    func testUnconfiguredAPISurfacesAsFailure() async {
+    func testUnconfiguredProviderSurfacesAsFailure() async {
         let viewModel = HomeViewModel()
 
-        await viewModel.load(using: UnconfiguredSpotifyAPI())
+        await viewModel.load(using: UnconfiguredStatsProvider())
 
         guard case .failed = viewModel.state else {
             return XCTFail("Expected .failed, got \(viewModel.state)")

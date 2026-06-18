@@ -121,8 +121,16 @@ struct StatDailyPoint: Decodable, Equatable, Sendable, Identifiable {
     }
 }
 
-/// Shared parsers for the string date/timestamp shapes the `stats_*` RPCs return.
+/// Shared parsers for the string date/timestamp shapes our collected data returns. The `stats_*`
+/// RPCs emit whole-second UTC strings; a raw `play_events` select returns full timestamptz with
+/// fractional seconds, so we try the fractional formatter first, then whole seconds.
 enum StatsDateParsing {
+    private static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -138,7 +146,7 @@ enum StatsDateParsing {
     }()
 
     static func timestamp(from string: String) -> Date? {
-        timestampFormatter.date(from: string)
+        fractionalFormatter.date(from: string) ?? timestampFormatter.date(from: string)
     }
 
     static func day(from string: String) -> Date? {

@@ -163,47 +163,6 @@ private struct DayBar: Identifiable {
     let playCount: Int
 }
 
-/// A compact headline metric tile.
-private struct StatTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Label(title, systemImage: systemImage)
-                .font(.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Text(value)
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.Spacing.md)
-        .background(Theme.Colors.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-}
-
-/// A titled translucent panel that hosts a chart or a list section.
-private struct SectionCard<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(Theme.Colors.textPrimary)
-            content()
-        }
-        .padding(Theme.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-}
-
 private struct StatTrackRow: View {
     let rank: Int
     let track: StatTrack
@@ -244,17 +203,6 @@ private struct StatArtistRow: View {
             PlayCountBadge(count: artist.playCount)
         }
         .padding(.vertical, Theme.Spacing.xs)
-    }
-}
-
-/// "N plays" pill, with correct singular/plural.
-private struct PlayCountBadge: View {
-    let count: Int
-
-    var body: some View {
-        Text("\(count) \(count == 1 ? "play" : "plays")")
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(Theme.Colors.accent)
     }
 }
 
