@@ -12,7 +12,7 @@ struct SignInView: View {
                 Image(systemName: "music.note.list")
                     .font(.system(size: 52, weight: .semibold))
                     .foregroundStyle(Theme.Colors.accent)
-                Text("SpotiStats")
+                Text(AppInfo.name)
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.Colors.textPrimary)
                 Text("Your music, after dark.")

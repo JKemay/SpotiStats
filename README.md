@@ -1,15 +1,16 @@
-# SpotiStats
+# Nocturne
 
 A Spotify listening-analytics app for iOS. It shows your top tracks and artists, your recently
 played songs, and listening statistics that build up over time from your own play history.
 
-> **Status:** early development. The name shown here is a working codename and will change before
-> any public release.
+> **Status:** early development. **Nocturne** is the app's display name; "SpotiStats" remains the
+> internal codename (repo, Xcode project, and bundle id), which is why you'll still see it in
+> paths and commands below.
 
 ## Why this exists
 
 The Spotify Web API only exposes top items over a few fixed windows and your most recent ~50
-plays. It does not expose true long-term listening history or accurate "time listened." SpotiStats
+plays. It does not expose true long-term listening history or accurate "time listened." Nocturne
 solves this the way analytics apps do in practice: a small backend service **continuously collects
 your recently-played tracks and stores them**, so real history and statistics accrue over time.
 
