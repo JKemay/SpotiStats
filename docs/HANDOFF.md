@@ -293,14 +293,33 @@ Done (continued):
   scene element (age-rating flexibility). 53 tests (+2: smoke determinism/bounds + bidirectional
   drift). Verified on the simulator.
 
+- [x] **Home → dashboard** (PR #16): Home no longer shows Spotify's ephemeral last-20. It now
+  reads our **own collected history**: a this-week snapshot (`stats_overview` days=7), an "On
+  repeat" highlight (`stats_top_tracks` days=7 limit=1), and a recently-played **carousel** from
+  a new `recentPlays(limit:)` (a plain RLS-scoped `play_events` select via `CollectedPlay`).
+  `HomeViewModel` now drives a `HomeDashboard` off `statsProvider` (not `spotifyAPI`). Extracted
+  shared `StatTile`/`SectionCard`/`PlayCountBadge` into `Views/Components/StatsComponents.swift`
+  (reused by Stats + Home). Also bumped Tracks/Artists to Spotify's max **50** per request (was
+  20 — Spotify's hard cap for top-items). VERIFIED live on the simulator (58 plays this week,
+  on-repeat + carousel render from real data). 56 tests (+ Home dashboard, CollectedPlay decode/
+  fractional-timestamp). NOTE: `SpotifyAPI.recentlyPlayed` is now unused by the app (Home moved
+  to collected data) but kept on the client + tested.
+
 **Next up:**
-1. **Phase 3.5 UI.** Wire Settings buttons for the deployed `disconnect-spotify` /
-   `delete-account` functions (confirm dialogs + the Spotify "Apps with access" link). Add a
-   `PrivacyBackend` (like the others) calling those Edge Functions; on delete success, sign out.
-   NOTE: verify the destructive paths WITH the owner (they wipe real data) — don't execute-test
-   them autonomously.
-2. **Phase 4 polish (remaining).** Display-name rename to **Nocturne** is in PR #13. Still to do:
-   broaden tests, README screenshots, app-icon art.
+1. **Verify + merge the privacy UI (PR #15, DRAFT)** — owner action: test Disconnect + Delete
+   Account on the simulator (destructive; verify against a throwaway account for delete), then
+   mark ready + merge.
+2. **More Home/Stats ideas the owner is interested in** (raised 2026-06-17; only "Home dashboard"
+   was picked for this round — these are the deferred rest):
+   - **Top Albums** from collected plays (Spotify has no top-albums endpoint; derive from
+     `play_events` album_name/album_art_url). Placement TBD (Stats section vs new tab — note the
+     5-tab bar is full, so likely a Stats section).
+   - **Collected "all-time" tops** — a toggle on Tracks/Artists between Spotify's affinity ranking
+     (max 50) and the user's actual play counts from `play_events` (uncapped).
+   - **Listening insights** — time-of-day/weekday heatmap, "on repeat" expansion, listening
+     streaks (all derivable from `play_events.played_at`).
+3. **Phase 4 polish (remaining).** Broaden tests, README screenshots (owner: contains real
+   listening data — get consent before committing), app-icon art.
 
 #### Session log
 - 2026-06-06: Phase 0.5 spike run on the simulator and PROVEN; conventions/handoff doc (PR #1).
