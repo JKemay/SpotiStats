@@ -69,17 +69,12 @@ struct TrackRow: View {
 
             Spacer()
 
-            Text(Self.durationText(milliseconds: track.durationMs))
+            Text(track.durationMs.asTrackLength)
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(.vertical, Theme.Spacing.xs)
-    }
-
-    static func durationText(milliseconds: Int) -> String {
-        let totalSeconds = milliseconds / 1000
-        return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 }
 

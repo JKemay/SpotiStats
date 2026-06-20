@@ -302,6 +302,7 @@ Done (continued):
   Bumped Tracks/Artists to Spotify's max **50** per request. Verified live. `SpotifyAPI.recentlyPlayed`
   is now unused by the app but kept on the client + tested.
 
+- [x] **Lint fix + formatter consolidation** (PR opened 2026-06-19): fixed 13 `switch_case_alignment` violations in `NetworkError.swift`; consolidated `TrackRow.durationText` and `StatsFormat.listeningTime` onto the existing `Int.asTrackLength` / `Int.asListeningTime` extensions (now actually used); cached `Date` formatters as `static let` to avoid per-call allocations; updated tests accordingly. 69 tests pass, `swiftlint --strict` clean.
 - [x] **Phase 3.5 — privacy UI + account-switch fix** (PR #15). `PrivacyBackend` +
   `LivePrivacyBackend` call the deployed `disconnect-spotify` / `delete-account` Edge Functions;
   `AuthService.disconnectSpotify()` / `deleteAccount()` invoke them then sign out locally (both

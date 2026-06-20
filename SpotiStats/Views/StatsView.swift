@@ -75,7 +75,7 @@ struct StatsView: View {
         ) {
             StatTile(
                 title: "Est. listening",
-                value: StatsFormat.listeningTime(milliseconds: overview.estListeningMs),
+                value: overview.estListeningMs.asListeningTime,
                 systemImage: "clock.fill"
             )
             StatTile(title: "Plays", value: "\(overview.totalPlays)", systemImage: "play.fill")

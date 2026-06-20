@@ -161,16 +161,3 @@ struct StatsBundle: Equatable, Sendable {
     let topArtists: [StatArtist]
     let daily: [StatDailyPoint]
 }
-
-enum StatsFormat {
-    /// Estimated listening time as a compact "Xh Ym" / "Ym" / "0m" string.
-    static func listeningTime(milliseconds: Int) -> String {
-        let totalMinutes = max(0, milliseconds) / 60_000
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        }
-        return "\(minutes)m"
-    }
-}

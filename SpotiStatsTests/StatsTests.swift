@@ -90,11 +90,11 @@ final class StatsTests: XCTestCase {
     // MARK: Models
 
     func testListeningTimeFormatting() {
-        XCTAssertEqual(StatsFormat.listeningTime(milliseconds: 9_000_000), "2h 30m")
-        XCTAssertEqual(StatsFormat.listeningTime(milliseconds: 600_000), "10m")
-        XCTAssertEqual(StatsFormat.listeningTime(milliseconds: 0), "0m")
-        XCTAssertEqual(StatsFormat.listeningTime(milliseconds: -5), "0m") // never negative
-        XCTAssertEqual(StatsFormat.listeningTime(milliseconds: 3_600_000), "1h 0m")
+        XCTAssertEqual(9_000_000.asListeningTime, "2h 30m")
+        XCTAssertEqual(600_000.asListeningTime, "10 min")
+        XCTAssertEqual(0.asListeningTime, "0s")
+        XCTAssertEqual((-5).asListeningTime, "0s") // negative ms rounds to 0s
+        XCTAssertEqual(3_600_000.asListeningTime, "1h")
     }
 
     func testPeriodDaysMapping() {
