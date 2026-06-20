@@ -49,6 +49,7 @@ struct StatsView: View {
                 periodPicker
                 summaryGrid(bundle.overview)
                 sinceCaption(bundle.overview)
+                streaks(bundle.streaks)
                 trendChart(bundle.daily)
                 listeningClock(bundle.clock)
                 topTracks(bundle.topTracks)
@@ -100,6 +101,30 @@ struct StatsView: View {
         let base = "Estimated — counts each played track's full length. Stats start when you connected"
         guard let first = overview.firstPlayedDate else { return base + "." }
         return base + " (\(first.formatted(date: .abbreviated, time: .omitted)))."
+    }
+
+    @ViewBuilder
+    private func streaks(_ streaks: ListeningStreaks) -> some View {
+        if streaks.longest > 0 {
+            SectionCard(title: "Streaks") {
+                HStack(spacing: Theme.Spacing.sm) {
+                    StatTile(
+                        title: "Current",
+                        value: dayLabel(streaks.current),
+                        systemImage: "flame.fill"
+                    )
+                    StatTile(
+                        title: "Longest",
+                        value: dayLabel(streaks.longest),
+                        systemImage: "trophy.fill"
+                    )
+                }
+            }
+        }
+    }
+
+    private func dayLabel(_ count: Int) -> String {
+        count == 1 ? "1 day" : "\(count) days"
     }
 
     @ViewBuilder

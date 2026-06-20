@@ -219,6 +219,118 @@ struct ListeningClock: Equatable, Sendable {
     }
 }
 
+/// Listening-streak counters derived from the `stats_play_days` RPC.
+struct ListeningStreaks: Equatable, Sendable {
+    /// Number of consecutive calendar days (UTC) ending at today or yesterday.
+    let current: Int
+    /// Longest run of consecutive calendar days in the collected history.
+    let longest: Int
+
+    /// Zero state — returned when there is no play history or the input is empty.
+    static let none = ListeningStreaks(current: 0, longest: 0)
+}
+
+/// Pure streak calculator. All logic lives here (not in the view) so it can be unit-tested
+/// with a deterministic injected `today`.
+enum StreakCalculator {
+    // MARK: - Public API
+
+    /// Compute `ListeningStreaks` from a list of `"yyyy-MM-dd"` UTC day strings and a reference
+    /// date for "today". Unparseable strings and duplicates are silently ignored. Safe on empty
+    /// input — returns `.none`.
+    ///
+    /// - Parameters:
+    ///   - playDays: Raw day strings from the `stats_play_days` RPC (any order, may contain dupes).
+    ///   - today: The calendar date to treat as "today" (UTC). Pass `Date()` from the call site;
+    ///            injected here so tests are deterministic.
+    static func streaks(playDays: [String], today: Date) -> ListeningStreaks {
+        guard !playDays.isEmpty else { return .none }
+
+        let todayNumber = utcDayNumber(for: today)
+        let daySet = buildDaySet(from: playDays)
+        guard !daySet.isEmpty else { return .none }
+
+        let longest = longestRun(in: daySet)
+        let current = currentStreak(in: daySet, todayNumber: todayNumber)
+
+        return ListeningStreaks(current: current, longest: longest)
+    }
+
+    // MARK: - Private helpers
+
+    private static let utcCalendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        if let utc = TimeZone(identifier: "UTC") {
+            cal.timeZone = utc
+        }
+        return cal
+    }()
+
+    /// Reference epoch for day-number arithmetic: 2000-01-01 UTC (arbitrary, consistent).
+    private static let referenceDate: Date = {
+        var components = DateComponents()
+        components.year = 2000
+        components.month = 1
+        components.day = 1
+        return utcCalendar.date(from: components) ?? Date(timeIntervalSinceReferenceDate: 0)
+    }()
+
+    /// Convert a `Date` to an integer day-number relative to `referenceDate` (UTC calendar days).
+    private static func utcDayNumber(for date: Date) -> Int {
+        utcCalendar.dateComponents([.day], from: referenceDate, to: date).day ?? 0
+    }
+
+    /// Parse day strings into a `Set<Int>` of day-numbers; bad strings are dropped silently.
+    private static func buildDaySet(from playDays: [String]) -> Set<Int> {
+        var result = Set<Int>()
+        for string in playDays {
+            if let date = StatsDateParsing.day(from: string) {
+                result.insert(utcDayNumber(for: date))
+            }
+        }
+        return result
+    }
+
+    /// Longest run of consecutive integers in `set`.
+    private static func longestRun(in set: Set<Int>) -> Int {
+        guard !set.isEmpty else { return 0 }
+        let sorted = set.sorted()
+        var best = 1
+        var run = 1
+        for index in 1..<sorted.count {
+            if sorted[index] == sorted[index - 1] + 1 {
+                run += 1
+                if run > best { best = run }
+            } else {
+                run = 1
+            }
+        }
+        return best
+    }
+
+    /// Current streak ending at today (or yesterday if today has no plays yet).
+    private static func currentStreak(in set: Set<Int>, todayNumber: Int) -> Int {
+        // Determine starting point: today if played today; yesterday if played yesterday; else 0.
+        let startDay: Int
+        if set.contains(todayNumber) {
+            startDay = todayNumber
+        } else if set.contains(todayNumber - 1) {
+            startDay = todayNumber - 1
+        } else {
+            return 0
+        }
+
+        // Walk backward counting consecutive days.
+        var count = 0
+        var day = startDay
+        while set.contains(day) {
+            count += 1
+            day -= 1
+        }
+        return count
+    }
+}
+
 /// Everything one Stats screen render needs, loaded together.
 struct StatsBundle: Equatable, Sendable {
     let overview: StatsOverview
@@ -227,4 +339,5 @@ struct StatsBundle: Equatable, Sendable {
     let topArtists: [StatArtist]
     let daily: [StatDailyPoint]
     let clock: ListeningClock
+    let streaks: ListeningStreaks
 }

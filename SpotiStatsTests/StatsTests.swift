@@ -15,6 +15,7 @@ final class StatsTests: XCTestCase {
         provider.topArtistsResult = .success([StatsSamples.artist])
         provider.dailyResult = .success([StatsSamples.day])
         provider.clockResult = .success(StatsSamples.heatmapCells)
+        provider.playDaysResult = .success(StatsSamples.playDays)
         let viewModel = StatsViewModel()
 
         await viewModel.load(using: provider)
@@ -29,6 +30,9 @@ final class StatsTests: XCTestCase {
         XCTAssertEqual(bundle.daily, [StatsSamples.day])
         XCTAssertEqual(bundle.clock, ListeningClock(cells: StatsSamples.heatmapCells))
         XCTAssertFalse(bundle.clock.isEmpty)
+        // streaks field is present; longest is deterministically 3 from StatsSamples.playDays
+        // (2026-06-15/16/17 form a 3-day run). current depends on real Date(), so we check longest.
+        XCTAssertEqual(bundle.streaks.longest, 3)
     }
 
     @MainActor

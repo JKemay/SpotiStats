@@ -11,6 +11,7 @@ final class MockStatsProvider: StatsProviding {
     var dailyResult: Result<[StatDailyPoint], Error> = .success([])
     var clockResult: Result<[HeatmapCell], Error> = .success([])
     var recentPlaysResult: Result<[CollectedPlay], Error> = .success([])
+    var playDaysResult: Result<[String], Error> = .success([])
 
     private(set) var requestedOverviewDays: [Int?] = []
     private(set) var requestedDailyDays: [Int] = []
@@ -47,6 +48,10 @@ final class MockStatsProvider: StatsProviding {
     func recentPlays(limit: Int) async throws -> [CollectedPlay] {
         requestedRecentLimits.append(limit)
         return try recentPlaysResult.get()
+    }
+
+    func playDays(limit: Int) async throws -> [String] {
+        try playDaysResult.get()
     }
 }
 
@@ -87,6 +92,15 @@ enum StatsSamples {
         HeatmapCell(weekday: 1, hour: 9, playCount: 10),
         HeatmapCell(weekday: 1, hour: 10, playCount: 5),
         HeatmapCell(weekday: 3, hour: 14, playCount: 3)
+    ]
+
+    /// A deterministic set of play-day strings for streak tests.
+    /// Contains: 2026-06-17, 2026-06-16, 2026-06-15 (3-day run) and 2026-06-10 (isolated day).
+    static let playDays: [String] = [
+        "2026-06-17",
+        "2026-06-16",
+        "2026-06-15",
+        "2026-06-10"
     ]
 
     static let recentPlay = CollectedPlay(

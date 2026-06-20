@@ -16,6 +16,9 @@ protocol StatsProviding {
     /// The most recent plays from our own collected history (newest first) — unbounded by
     /// Spotify's last-50 window; powers the Home dashboard feed.
     func recentPlays(limit: Int) async throws -> [CollectedPlay]
+    /// DISTINCT UTC calendar dates (`"YYYY-MM-DD"`) with any play, newest first.
+    /// Used by `StreakCalculator` to compute listening streaks without full timestamps.
+    func playDays(limit: Int) async throws -> [String]
 }
 
 /// Live implementation backed by the Supabase PostgREST `rpc` endpoint.
@@ -76,6 +79,15 @@ struct LiveStatsProvider: StatsProviding {
             .execute()
             .value
     }
+
+    func playDays(limit: Int) async throws -> [String] {
+        // Returns an array of single-column rows; decode as [DayRow] then map out the string.
+        let rows: [DayRow] = try await client
+            .rpc("stats_play_days", params: LimitParam(limit: limit))
+            .execute()
+            .value
+        return rows.map(\.day)
+    }
 }
 
 // RPC argument payloads. A nil `days` is omitted by the synthesized encoder (Swift uses
@@ -99,6 +111,20 @@ private struct LimitDaysParam: Encodable {
     }
 }
 
+/// Argument payload for RPCs that only take a `p_limit` parameter (e.g. `stats_play_days`).
+private struct LimitParam: Encodable {
+    let limit: Int
+
+    enum CodingKeys: String, CodingKey {
+        case limit = "p_limit"
+    }
+}
+
+/// One row from `stats_play_days`: a single `"YYYY-MM-DD"` UTC day string.
+private struct DayRow: Decodable {
+    let day: String
+}
+
 /// Environment default: surfaces a clear error if a Stats screen renders without the live
 /// provider injected (e.g. a preview or test that forgot to supply a mock).
 struct UnconfiguredStatsProvider: StatsProviding {
@@ -113,4 +139,5 @@ struct UnconfiguredStatsProvider: StatsProviding {
     func daily(days: Int) async throws -> [StatDailyPoint] { throw NotConfigured() }
     func listeningClock(days: Int?) async throws -> [HeatmapCell] { throw NotConfigured() }
     func recentPlays(limit: Int) async throws -> [CollectedPlay] { throw NotConfigured() }
+    func playDays(limit: Int) async throws -> [String] { throw NotConfigured() }
 }
