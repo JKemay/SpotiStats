@@ -47,6 +47,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         # Surface build-config values into Info.plist so they're readable at runtime.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: SpotiStats/Resources/Info.generated.plist
       properties:
