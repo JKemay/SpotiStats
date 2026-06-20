@@ -9,6 +9,7 @@ protocol StatsProviding {
     /// `days == nil` means all collected history.
     func overview(days: Int?) async throws -> StatsOverview
     func topTracks(days: Int?, limit: Int) async throws -> [StatTrack]
+    func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum]
     func topArtists(days: Int?, limit: Int) async throws -> [StatArtist]
     func daily(days: Int) async throws -> [StatDailyPoint]
     /// The most recent plays from our own collected history (newest first) — unbounded by
@@ -32,6 +33,13 @@ struct LiveStatsProvider: StatsProviding {
     func topTracks(days: Int?, limit: Int) async throws -> [StatTrack] {
         try await client
             .rpc("stats_top_tracks", params: LimitDaysParam(limit: limit, days: days))
+            .execute()
+            .value
+    }
+
+    func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum] {
+        try await client
+            .rpc("stats_top_albums", params: LimitDaysParam(limit: limit, days: days))
             .execute()
             .value
     }
@@ -92,6 +100,7 @@ struct UnconfiguredStatsProvider: StatsProviding {
 
     func overview(days: Int?) async throws -> StatsOverview { throw NotConfigured() }
     func topTracks(days: Int?, limit: Int) async throws -> [StatTrack] { throw NotConfigured() }
+    func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum] { throw NotConfigured() }
     func topArtists(days: Int?, limit: Int) async throws -> [StatArtist] { throw NotConfigured() }
     func daily(days: Int) async throws -> [StatDailyPoint] { throw NotConfigured() }
     func recentPlays(limit: Int) async throws -> [CollectedPlay] { throw NotConfigured() }

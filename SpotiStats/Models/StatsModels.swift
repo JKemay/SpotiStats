@@ -89,6 +89,28 @@ struct StatTrack: Decodable, Equatable, Sendable, Identifiable {
     }
 }
 
+/// One row from `stats_top_albums`.
+struct StatAlbum: Decodable, Equatable, Sendable, Identifiable {
+    let albumKey: String
+    let albumName: String
+    let albumArtURL: String?
+    let artistNames: [String]
+    let playCount: Int
+    let estMs: Int
+
+    var id: String { albumKey }
+    var artistsDisplay: String { artistNames.joined(separator: ", ") }
+
+    enum CodingKeys: String, CodingKey {
+        case albumKey = "album_key"
+        case albumName = "album_name"
+        case albumArtURL = "album_art_url"
+        case artistNames = "artist_names"
+        case playCount = "play_count"
+        case estMs = "est_ms"
+    }
+}
+
 /// One row from `stats_top_artists`.
 struct StatArtist: Decodable, Equatable, Sendable, Identifiable {
     let artistName: String
@@ -158,6 +180,7 @@ enum StatsDateParsing {
 struct StatsBundle: Equatable, Sendable {
     let overview: StatsOverview
     let topTracks: [StatTrack]
+    let topAlbums: [StatAlbum]
     let topArtists: [StatArtist]
     let daily: [StatDailyPoint]
 }

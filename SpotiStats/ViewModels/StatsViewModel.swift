@@ -25,12 +25,14 @@ final class StatsViewModel {
         do {
             async let overview = provider.overview(days: period.days)
             async let topTracks = provider.topTracks(days: period.days, limit: listLimit)
+            async let topAlbums = provider.topAlbums(days: period.days, limit: listLimit)
             async let topArtists = provider.topArtists(days: period.days, limit: listLimit)
             async let daily = provider.daily(days: dailyDays)
 
             let bundle = StatsBundle(
                 overview: try await overview,
                 topTracks: try await topTracks,
+                topAlbums: try await topAlbums,
                 topArtists: try await topArtists,
                 daily: try await daily
             )
