@@ -303,6 +303,7 @@ Done (continued):
   is now unused by the app but kept on the client + tested.
 
 - [x] **Lint fix + formatter consolidation** (PR opened 2026-06-19): fixed 13 `switch_case_alignment` violations in `NetworkError.swift`; consolidated `TrackRow.durationText` and `StatsFormat.listeningTime` onto the existing `Int.asTrackLength` / `Int.asListeningTime` extensions (now actually used); cached `Date` formatters as `static let` to avoid per-call allocations; updated tests accordingly. 69 tests pass, `swiftlint --strict` clean.
+- [x] **Top Albums** (feat/top-albums, PR open 2026-06-19): migration `20260619120000_stats_top_albums.sql` adds `stats_top_albums` RPC (groups by `album_name`; `DISTINCT ON` latest-snapshot for art/artists; `security invoker`, RLS-scoped). Swift: `StatAlbum` model + `topAlbums` added to `StatsBundle`/`StatsProviding`/`LiveStatsProvider`/`UnconfiguredStatsProvider`/`StatsViewModel` (concurrent `async let`). UI: horizontal carousel in `StatsView` between top tracks and top artists (`SectionCard` + `ScrollView(.horizontal)` + `LazyHStack` + `TopAlbumCard` with 120pt art, album name, `PlayCountBadge`). 70 tests pass. **Migration NOT yet deployed** — reviewer runs `supabase db push`.
 - [x] **Phase 3.5 — privacy UI + account-switch fix** (PR #15). `PrivacyBackend` +
   `LivePrivacyBackend` call the deployed `disconnect-spotify` / `delete-account` Edge Functions;
   `AuthService.disconnectSpotify()` / `deleteAccount()` invoke them then sign out locally (both

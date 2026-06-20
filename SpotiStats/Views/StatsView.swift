@@ -51,6 +51,7 @@ struct StatsView: View {
                 sinceCaption(bundle.overview)
                 trendChart(bundle.daily)
                 topTracks(bundle.topTracks)
+                topAlbums(bundle.topAlbums)
                 topArtists(bundle.topArtists)
             }
             .padding(Theme.Spacing.md)
@@ -143,6 +144,22 @@ struct StatsView: View {
     }
 
     @ViewBuilder
+    private func topAlbums(_ albums: [StatAlbum]) -> some View {
+        if !albums.isEmpty {
+            SectionCard(title: "Top albums") {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: Theme.Spacing.md) {
+                        ForEach(albums) { album in
+                            TopAlbumCard(album: album)
+                        }
+                    }
+                    .padding(.vertical, Theme.Spacing.xs)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func topArtists(_ artists: [StatArtist]) -> some View {
         if !artists.isEmpty {
             SectionCard(title: "Top artists") {
@@ -161,6 +178,29 @@ private struct DayBar: Identifiable {
     let id: String
     let date: Date
     let playCount: Int
+}
+
+/// A single album-cover tile in the top-albums carousel.
+private struct TopAlbumCard: View {
+    let album: StatAlbum
+
+    private static let cardWidth: CGFloat = 120
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            ArtworkThumbnail(
+                url: album.albumArtURL.flatMap(URL.init(string:)),
+                size: Self.cardWidth,
+                cornerRadius: Theme.Radius.card
+            )
+            Text(album.albumName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .lineLimit(1)
+            PlayCountBadge(count: album.playCount)
+        }
+        .frame(width: Self.cardWidth, alignment: .leading)
+    }
 }
 
 private struct StatTrackRow: View {

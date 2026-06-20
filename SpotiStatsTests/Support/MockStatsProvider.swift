@@ -6,6 +6,7 @@ import Foundation
 final class MockStatsProvider: StatsProviding {
     var overviewResult: Result<StatsOverview, Error> = .success(.empty)
     var topTracksResult: Result<[StatTrack], Error> = .success([])
+    var topAlbumsResult: Result<[StatAlbum], Error> = .success([])
     var topArtistsResult: Result<[StatArtist], Error> = .success([])
     var dailyResult: Result<[StatDailyPoint], Error> = .success([])
     var recentPlaysResult: Result<[CollectedPlay], Error> = .success([])
@@ -23,6 +24,10 @@ final class MockStatsProvider: StatsProviding {
     func topTracks(days: Int?, limit: Int) async throws -> [StatTrack] {
         requestedTopTrackDays.append(days)
         return try topTracksResult.get()
+    }
+
+    func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum] {
+        try topAlbumsResult.get()
     }
 
     func topArtists(days: Int?, limit: Int) async throws -> [StatArtist] {
@@ -57,6 +62,15 @@ enum StatsSamples {
         albumArtURL: "https://img/nocturne",
         playCount: 7,
         estMs: 1_400_000
+    )
+
+    static let album = StatAlbum(
+        albumKey: "Vertigo",
+        albumName: "Vertigo",
+        albumArtURL: "https://img/vertigo",
+        artistNames: ["EDEN"],
+        playCount: 5,
+        estMs: 1_000_000
     )
 
     static let artist = StatArtist(artistName: "EDEN", playCount: 12)

@@ -11,6 +11,7 @@ final class StatsTests: XCTestCase {
         let provider = MockStatsProvider()
         provider.overviewResult = .success(StatsSamples.overview)
         provider.topTracksResult = .success([StatsSamples.track])
+        provider.topAlbumsResult = .success([StatsSamples.album])
         provider.topArtistsResult = .success([StatsSamples.artist])
         provider.dailyResult = .success([StatsSamples.day])
         let viewModel = StatsViewModel()
@@ -22,6 +23,7 @@ final class StatsTests: XCTestCase {
         }
         XCTAssertEqual(bundle.overview.totalPlays, 42)
         XCTAssertEqual(bundle.topTracks, [StatsSamples.track])
+        XCTAssertEqual(bundle.topAlbums, [StatsSamples.album])
         XCTAssertEqual(bundle.topArtists, [StatsSamples.artist])
         XCTAssertEqual(bundle.daily, [StatsSamples.day])
     }
@@ -148,6 +150,24 @@ final class StatsTests: XCTestCase {
         XCTAssertEqual(track.trackName, "Nocturne")
         XCTAssertEqual(track.artistNames, ["EDEN"])
         XCTAssertEqual(track.playCount, 7)
+    }
+
+    func testTopAlbumDecodesFromRPCJSON() throws {
+        let json = """
+        {
+          "album_key": "Vertigo",
+          "album_name": "Vertigo",
+          "album_art_url": "https://img/vertigo",
+          "artist_names": ["EDEN"],
+          "play_count": 5,
+          "est_ms": 1000000
+        }
+        """
+        let album = try JSONDecoder().decode(StatAlbum.self, from: Data(json.utf8))
+        XCTAssertEqual(album.albumName, "Vertigo")
+        XCTAssertEqual(album.artistNames, ["EDEN"])
+        XCTAssertEqual(album.playCount, 5)
+        XCTAssertEqual(album.artistsDisplay, "EDEN")
     }
 
     func testCollectedPlayDecodesFromPlayEventsRow() throws {
