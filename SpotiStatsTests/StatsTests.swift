@@ -14,6 +14,7 @@ final class StatsTests: XCTestCase {
         provider.topAlbumsResult = .success([StatsSamples.album])
         provider.topArtistsResult = .success([StatsSamples.artist])
         provider.dailyResult = .success([StatsSamples.day])
+        provider.clockResult = .success(StatsSamples.heatmapCells)
         let viewModel = StatsViewModel()
 
         await viewModel.load(using: provider)
@@ -26,6 +27,8 @@ final class StatsTests: XCTestCase {
         XCTAssertEqual(bundle.topAlbums, [StatsSamples.album])
         XCTAssertEqual(bundle.topArtists, [StatsSamples.artist])
         XCTAssertEqual(bundle.daily, [StatsSamples.day])
+        XCTAssertEqual(bundle.clock, ListeningClock(cells: StatsSamples.heatmapCells))
+        XCTAssertFalse(bundle.clock.isEmpty)
     }
 
     @MainActor
@@ -192,5 +195,50 @@ final class StatsTests: XCTestCase {
 
     func testCollectedPlayParsesWholeSecondTimestamp() {
         XCTAssertNotNil(StatsSamples.recentPlay.playedAtDate) // "...T20:00:00Z" (no fraction)
+    }
+
+    // MARK: ListeningClock
+
+    func testListeningClockIntensityNormalization() {
+        // heatmapCells: max is weekday 1 / hour 9 with count 10.
+        let clock = ListeningClock(cells: StatsSamples.heatmapCells)
+
+        // Max cell is exactly 1.0.
+        XCTAssertEqual(clock.intensity(weekday: 1, hour: 9), 1.0, accuracy: 0.001)
+
+        // Smaller cell is a correct fraction: 5 / 10 = 0.5.
+        XCTAssertEqual(clock.intensity(weekday: 1, hour: 10), 0.5, accuracy: 0.001)
+
+        // Absent cell is 0.
+        XCTAssertEqual(clock.intensity(weekday: 0, hour: 0), 0.0, accuracy: 0.001)
+
+        // Summary counters.
+        XCTAssertEqual(clock.maxCount, 10)
+        XCTAssertEqual(clock.totalPlays, 18)
+        XCTAssertFalse(clock.isEmpty)
+    }
+
+    func testListeningClockEmptyStateNeverDividesByZero() {
+        let empty = ListeningClock(cells: [])
+        XCTAssertTrue(empty.isEmpty)
+        XCTAssertEqual(empty.maxCount, 0)
+        XCTAssertEqual(empty.totalPlays, 0)
+        // Must not crash or return NaN.
+        XCTAssertEqual(empty.intensity(weekday: 0, hour: 0), 0.0, accuracy: 0.001)
+        XCTAssertEqual(empty.intensity(weekday: 6, hour: 23), 0.0, accuracy: 0.001)
+    }
+
+    func testHeatmapCellDecodesFromRPCJSON() throws {
+        let json = """
+        {
+          "weekday": 3,
+          "hour": 14,
+          "play_count": 7
+        }
+        """
+        let cell = try JSONDecoder().decode(HeatmapCell.self, from: Data(json.utf8))
+        XCTAssertEqual(cell.weekday, 3)
+        XCTAssertEqual(cell.hour, 14)
+        XCTAssertEqual(cell.playCount, 7)
     }
 }

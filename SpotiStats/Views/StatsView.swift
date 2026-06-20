@@ -50,6 +50,7 @@ struct StatsView: View {
                 summaryGrid(bundle.overview)
                 sinceCaption(bundle.overview)
                 trendChart(bundle.daily)
+                listeningClock(bundle.clock)
                 topTracks(bundle.topTracks)
                 topAlbums(bundle.topAlbums)
                 topArtists(bundle.topArtists)
@@ -131,6 +132,18 @@ struct StatsView: View {
     }
 
     @ViewBuilder
+    private func listeningClock(_ clock: ListeningClock) -> some View {
+        if !clock.isEmpty {
+            SectionCard(title: "Listening clock") {
+                ListeningClockGrid(clock: clock)
+                Text("Times shown in UTC.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
     private func topTracks(_ tracks: [StatTrack]) -> some View {
         if !tracks.isEmpty {
             SectionCard(title: "Top tracks") {
@@ -166,6 +179,39 @@ struct StatsView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(artists.enumerated()), id: \.element.id) { index, artist in
                         StatArtistRow(rank: index + 1, artist: artist)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 7-row × 24-column heatmap grid.  One cell per (weekday, hour) bucket.
+/// The view is deliberately dumb: it only reads `clock.intensity(weekday:hour:)`.
+private struct ListeningClockGrid: View {
+    let clock: ListeningClock
+
+    // Single-letter day labels in Sunday-first order (mirrors PostgreSQL DOW 0…6).
+    private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
+
+    // Cell size chosen so 24 columns + a ~12pt label column fit a ≈360pt card width:
+    // 12 (label) + 4 (gap) + 24 * (10 + 2) = 12 + 4 + 288 = 304pt — comfortably fits.
+    private let cellSize: CGFloat = 10
+    private let cellSpacing: CGFloat = 2
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: cellSpacing) {
+            ForEach(0..<7, id: \.self) { weekday in
+                HStack(spacing: cellSpacing) {
+                    Text(dayLabels[weekday])
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .frame(width: 10, alignment: .trailing)
+                    ForEach(0..<24, id: \.self) { hour in
+                        let intensity = clock.intensity(weekday: weekday, hour: hour)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.Colors.accent.opacity(0.12 + 0.88 * intensity))
+                            .frame(width: cellSize, height: cellSize)
                     }
                 }
             }

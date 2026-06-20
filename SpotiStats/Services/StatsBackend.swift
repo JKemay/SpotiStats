@@ -12,6 +12,7 @@ protocol StatsProviding {
     func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum]
     func topArtists(days: Int?, limit: Int) async throws -> [StatArtist]
     func daily(days: Int) async throws -> [StatDailyPoint]
+    func listeningClock(days: Int?) async throws -> [HeatmapCell]
     /// The most recent plays from our own collected history (newest first) — unbounded by
     /// Spotify's last-50 window; powers the Home dashboard feed.
     func recentPlays(limit: Int) async throws -> [CollectedPlay]
@@ -54,6 +55,13 @@ struct LiveStatsProvider: StatsProviding {
     func daily(days: Int) async throws -> [StatDailyPoint] {
         try await client
             .rpc("stats_daily", params: DaysParam(days: days))
+            .execute()
+            .value
+    }
+
+    func listeningClock(days: Int?) async throws -> [HeatmapCell] {
+        try await client
+            .rpc("stats_listening_clock", params: DaysParam(days: days))
             .execute()
             .value
     }
@@ -103,5 +111,6 @@ struct UnconfiguredStatsProvider: StatsProviding {
     func topAlbums(days: Int?, limit: Int) async throws -> [StatAlbum] { throw NotConfigured() }
     func topArtists(days: Int?, limit: Int) async throws -> [StatArtist] { throw NotConfigured() }
     func daily(days: Int) async throws -> [StatDailyPoint] { throw NotConfigured() }
+    func listeningClock(days: Int?) async throws -> [HeatmapCell] { throw NotConfigured() }
     func recentPlays(limit: Int) async throws -> [CollectedPlay] { throw NotConfigured() }
 }

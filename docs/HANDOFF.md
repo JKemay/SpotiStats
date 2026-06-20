@@ -315,13 +315,24 @@ Done (continued):
   and also guarantees a `provider_refresh_token`. STILL TODO (owner): test Delete Account on a
   throwaway account now that account-switching works (irreversible).
 
+- [x] **Listening Clock heatmap** (feat/listening-clock-heatmap, PR open 2026-06-20): migration
+  `20260620120000_stats_listening_clock.sql` adds `stats_listening_clock(p_days)` RPC (groups
+  `play_events` by UTC weekday × hour; `security invoker`, RLS-scoped). Swift: `HeatmapCell` +
+  `ListeningClock` value type (intensity normalisation, empty/maxCount/totalPlays, no force-unwrap).
+  `clock: ListeningClock` added to `StatsBundle`; `listeningClock(days:)` threaded through
+  `StatsProviding` → `LiveStatsProvider` → `UnconfiguredStatsProvider` → `MockStatsProvider` →
+  `StatsViewModel` (concurrent `async let`). UI: `ListeningClockGrid` (7 rows × 24 cols, leading
+  day-letter labels, `accent.opacity(0.12 + 0.88 * intensity)` cells) inside a `SectionCard`
+  placed after the daily-plays chart, shown only when non-empty; "Times shown in UTC." caption.
+  3 new tests (intensity normalisation, empty-state / no-divide-by-zero, JSON decode). **Migration
+  NOT yet deployed** — reviewer runs `supabase db push`.
+
 **Next up:**
 1. **Test Delete Account** (owner) on a throwaway Spotify account — now reachable thanks to the
    account-switch fix. Disconnect is already verified.
 2. **Owner's feature wishlist** (2026-06-17 — build when asked):
    - **Top Albums** from collected plays (Spotify has NO top-albums endpoint; derive from
      `play_events` album_name/album_art_url). Likely a Stats section (the 5-tab bar is full).
-   - **Listening clock / heatmap** — plays by hour-of-day and weekday (from `play_events.played_at`).
    - **Streaks** — consecutive days with listening.
    - **Shareable stat cards** — render a nice image of the user's week (portfolio piece).
    - **Collected "all-time" tops** — Tracks/Artists toggle: Spotify affinity (max 50) vs our
