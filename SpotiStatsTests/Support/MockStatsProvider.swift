@@ -9,6 +9,7 @@ final class MockStatsProvider: StatsProviding {
     var topAlbumsResult: Result<[StatAlbum], Error> = .success([])
     var topArtistsResult: Result<[StatArtist], Error> = .success([])
     var dailyResult: Result<[StatDailyPoint], Error> = .success([])
+    var clockResult: Result<[HeatmapCell], Error> = .success([])
     var recentPlaysResult: Result<[CollectedPlay], Error> = .success([])
 
     private(set) var requestedOverviewDays: [Int?] = []
@@ -37,6 +38,10 @@ final class MockStatsProvider: StatsProviding {
     func daily(days: Int) async throws -> [StatDailyPoint] {
         requestedDailyDays.append(days)
         return try dailyResult.get()
+    }
+
+    func listeningClock(days: Int?) async throws -> [HeatmapCell] {
+        try clockResult.get()
     }
 
     func recentPlays(limit: Int) async throws -> [CollectedPlay] {
@@ -76,6 +81,13 @@ enum StatsSamples {
     static let artist = StatArtist(artistName: "EDEN", playCount: 12)
 
     static let day = StatDailyPoint(day: "2026-06-17", playCount: 9, estMs: 1_800_000)
+
+    /// Sample heatmap cells with a clear max (weekday 1, hour 9 has count 10).
+    static let heatmapCells: [HeatmapCell] = [
+        HeatmapCell(weekday: 1, hour: 9, playCount: 10),
+        HeatmapCell(weekday: 1, hour: 10, playCount: 5),
+        HeatmapCell(weekday: 3, hour: 14, playCount: 3)
+    ]
 
     static let recentPlay = CollectedPlay(
         id: 1,

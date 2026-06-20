@@ -176,6 +176,49 @@ enum StatsDateParsing {
     }
 }
 
+/// One row from `stats_listening_clock`: a (weekday, hour) bucket with its play count.
+/// weekday follows the PostgreSQL DOW convention: 0 = Sunday … 6 = Saturday.
+/// hour is 0 … 23 (UTC).
+struct HeatmapCell: Decodable, Equatable, Sendable {
+    let weekday: Int
+    let hour: Int
+    let playCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case weekday
+        case hour
+        case playCount = "play_count"
+    }
+}
+
+/// A normalised view of the `stats_listening_clock` RPC result, ready for the heatmap renderer.
+/// All grid/intensity math lives here so it can be unit-tested independently of the view.
+struct ListeningClock: Equatable, Sendable {
+    private let cells: [HeatmapCell]
+
+    /// The highest play count among all cells (0 when there are no cells).
+    let maxCount: Int
+
+    /// Sum of all play counts across every bucket.
+    let totalPlays: Int
+
+    init(cells: [HeatmapCell]) {
+        self.cells = cells
+        self.maxCount = cells.map(\.playCount).max() ?? 0
+        self.totalPlays = cells.reduce(0) { $0 + $1.playCount }
+    }
+
+    var isEmpty: Bool { totalPlays == 0 }
+
+    /// Relative intensity for the given cell, in 0 … 1.
+    /// Returns 0 when there is no data or when the grid has no plays (avoids division by zero).
+    func intensity(weekday: Int, hour: Int) -> Double {
+        guard maxCount > 0 else { return 0 }
+        let count = cells.first { $0.weekday == weekday && $0.hour == hour }?.playCount ?? 0
+        return Double(count) / Double(maxCount)
+    }
+}
+
 /// Everything one Stats screen render needs, loaded together.
 struct StatsBundle: Equatable, Sendable {
     let overview: StatsOverview
@@ -183,4 +226,5 @@ struct StatsBundle: Equatable, Sendable {
     let topAlbums: [StatAlbum]
     let topArtists: [StatArtist]
     let daily: [StatDailyPoint]
+    let clock: ListeningClock
 }

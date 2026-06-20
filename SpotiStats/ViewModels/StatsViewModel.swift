@@ -28,13 +28,15 @@ final class StatsViewModel {
             async let topAlbums = provider.topAlbums(days: period.days, limit: listLimit)
             async let topArtists = provider.topArtists(days: period.days, limit: listLimit)
             async let daily = provider.daily(days: dailyDays)
+            async let clockCells = provider.listeningClock(days: period.days)
 
             let bundle = StatsBundle(
                 overview: try await overview,
                 topTracks: try await topTracks,
                 topAlbums: try await topAlbums,
                 topArtists: try await topArtists,
-                daily: try await daily
+                daily: try await daily,
+                clock: ListeningClock(cells: try await clockCells)
             )
             // Guard against a stale write if the user switched periods mid-flight.
             guard period == selectedPeriod else { return }
