@@ -29,6 +29,7 @@ final class StatsViewModel {
             async let topArtists = provider.topArtists(days: period.days, limit: listLimit)
             async let daily = provider.daily(days: dailyDays)
             async let clockCells = provider.listeningClock(days: period.days)
+            async let days = provider.playDays(limit: 365)
 
             let bundle = StatsBundle(
                 overview: try await overview,
@@ -36,7 +37,8 @@ final class StatsViewModel {
                 topAlbums: try await topAlbums,
                 topArtists: try await topArtists,
                 daily: try await daily,
-                clock: ListeningClock(cells: try await clockCells)
+                clock: ListeningClock(cells: try await clockCells),
+                streaks: StreakCalculator.streaks(playDays: try await days, today: Date())
             )
             // Guard against a stale write if the user switched periods mid-flight.
             guard period == selectedPeriod else { return }
