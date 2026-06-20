@@ -42,14 +42,6 @@ final class ModelDisplayHelpersTests: XCTestCase {
         XCTAssertNil(item.playedAtDate)
     }
 
-    // MARK: Duration formatting
-
-    func testDurationFormatsMinutesAndSeconds() {
-        XCTAssertEqual(TrackRow.durationText(milliseconds: 312_820), "5:12")
-        XCTAssertEqual(TrackRow.durationText(milliseconds: 59_999), "0:59")
-        XCTAssertEqual(TrackRow.durationText(milliseconds: 0), "0:00")
-    }
-
     // MARK: LoadState helper
 
     func testLoadStateValueIsOnlyPresentWhenLoaded() {

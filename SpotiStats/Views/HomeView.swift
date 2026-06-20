@@ -62,7 +62,7 @@ struct HomeView: View {
         HStack(spacing: Theme.Spacing.sm) {
             StatTile(
                 title: "This week",
-                value: StatsFormat.listeningTime(milliseconds: week.estListeningMs),
+                value: week.estListeningMs.asListeningTime,
                 systemImage: "clock.fill"
             )
             StatTile(title: "Plays", value: "\(week.totalPlays)", systemImage: "play.fill")

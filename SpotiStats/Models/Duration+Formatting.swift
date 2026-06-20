@@ -61,29 +61,45 @@ extension Int {
 
 // MARK: - Date helpers
 
+// Cached formatters — created once and reused across all calls.
+private enum DateFormatters {
+    static let relative: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        formatter.dateTimeStyle = .named
+        return formatter
+    }()
+
+    static let shortDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
+    static let isoDate: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        return formatter
+    }()
+}
+
 extension Date {
     /// A relative description like "Today", "Yesterday", or "3 days ago".
     ///
     /// Uses `RelativeDateTimeFormatter` with `.named` style so recent dates
     /// read naturally in the recent-plays list.
     var relativeDisplay: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        formatter.dateTimeStyle = .named
-        return formatter.localizedString(for: self, relativeTo: .now)
+        DateFormatters.relative.localizedString(for: self, relativeTo: .now)
     }
 
     /// Short date string (e.g. "Jun 18") for chart axis labels.
     var shortDateLabel: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: self)
+        DateFormatters.shortDate.string(from: self)
     }
 
     /// ISO-8601 date-only string (e.g. "2026-06-18") for grouping plays by day.
     var isoDateString: String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-        return formatter.string(from: self)
+        DateFormatters.isoDate.string(from: self)
     }
 }
