@@ -7,16 +7,79 @@ import SwiftUI
 struct StatsView: View {
     @Environment(\.statsProvider) private var provider
     @State private var viewModel = StatsViewModel()
+    @State private var shareURL: URL?
+    @State private var isShowingShareSheet = false
+
+    // DEBUG flag: set `-previewShareCard YES` as a launch argument to overlay the share card.
+    #if DEBUG
+    private var previewShareCard: Bool {
+        UserDefaults.standard.bool(forKey: "previewShareCard")
+    }
+    #endif
 
     var body: some View {
         NavigationStack {
             ZStack {
                 NightCityBackground()
                 content
+                #if DEBUG
+                if previewShareCard, case .loaded(let bundle) = viewModel.state, !bundle.overview.isEmpty {
+                    Color.black.opacity(0.6).ignoresSafeArea()
+                    WeeklyShareCard(
+                        data: WeeklyShareData.from(bundle: bundle, period: viewModel.selectedPeriod)
+                    )
+                    .shadow(color: .black.opacity(0.5), radius: 24, y: 8)
+                }
+                #endif
             }
             .navigationTitle("Stats")
+            .toolbar {
+                if case .loaded(let bundle) = viewModel.state, !bundle.overview.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        shareButton(bundle: bundle)
+                    }
+                }
+            }
         }
         .task(id: viewModel.selectedPeriod) { await viewModel.load(using: provider) }
+        .sheet(
+            isPresented: $isShowingShareSheet,
+            onDismiss: { shareURL = nil },
+            content: {
+                if let url = shareURL {
+                    ShareSheet(items: [url])
+                }
+            }
+        )
+    }
+
+    private func shareButton(bundle: StatsBundle) -> some View {
+        Button {
+            renderAndShare(bundle: bundle)
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .tint(Theme.Colors.accent)
+    }
+
+    private func renderAndShare(bundle: StatsBundle) {
+        let data = WeeklyShareData.from(bundle: bundle, period: viewModel.selectedPeriod)
+        let card = WeeklyShareCard(data: data)
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 3
+
+        guard let uiImage = renderer.uiImage,
+              let pngData = uiImage.pngData() else { return }
+
+        let tmpURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nocturne-stats.png")
+        do {
+            try pngData.write(to: tmpURL, options: .atomic)
+            shareURL = tmpURL
+            isShowingShareSheet = true
+        } catch {
+            // If we can't write to tmp, silently skip — no force-unwrap, no crash.
+        }
     }
 
     @ViewBuilder
