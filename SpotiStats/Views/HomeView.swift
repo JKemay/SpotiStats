@@ -28,9 +28,12 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             StatusPanel(systemImage: "wifi.exclamationmark", message: message) {
-                Button("Retry") { Task { await viewModel.load(using: provider) } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.Colors.accent)
+                Button("Retry") {
+                    HapticManager.shared.tap()
+                    Task { await viewModel.load(using: provider) }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.Colors.accent)
             }
         case .loaded(let dashboard) where dashboard.isEmpty:
             StatusPanel(

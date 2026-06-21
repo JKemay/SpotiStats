@@ -19,6 +19,7 @@ struct LoadableList<Item, Row: View>: View {
         case .failed(let message):
             StatusPanel(systemImage: "wifi.exclamationmark", message: message) {
                 Button("Retry") {
+                    HapticManager.shared.tap()
                     Task { await retry() }
                 }
                 .buttonStyle(.borderedProminent)

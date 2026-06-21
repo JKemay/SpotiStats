@@ -92,9 +92,12 @@ struct StatsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             StatusPanel(systemImage: "chart.bar.xaxis", message: message) {
-                Button("Retry") { Task { await viewModel.load(using: provider) } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.Colors.accent)
+                Button("Retry") {
+                    HapticManager.shared.tap()
+                    Task { await viewModel.load(using: provider) }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.Colors.accent)
             }
         case .loaded(let bundle) where bundle.overview.isEmpty:
             StatusPanel(
