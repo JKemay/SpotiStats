@@ -132,6 +132,7 @@ struct StatsView: View {
             }
         }
         .pickerStyle(.segmented)
+        .onChange(of: viewModel.selectedPeriod) { _, _ in HapticManager.shared.selection() }
     }
 
     private func summaryGrid(_ overview: StatsOverview) -> some View {
