@@ -33,6 +33,7 @@ struct SettingsView: View {
                 titleVisibility: .visible
             ) {
                 Button("Sign Out", role: .destructive) {
+                    HapticManager.shared.notification(.warning)
                     Task { await auth.signOut() }
                 }
             } message: {
@@ -44,6 +45,7 @@ struct SettingsView: View {
                 titleVisibility: .visible
             ) {
                 Button("Disconnect", role: .destructive) {
+                    HapticManager.shared.notification(.warning)
                     Task { await auth.disconnectSpotify() }
                 }
             } message: {
@@ -58,6 +60,7 @@ struct SettingsView: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete Everything", role: .destructive) {
+                    HapticManager.shared.notification(.error)
                     Task { await auth.deleteAccount() }
                 }
             } message: {
