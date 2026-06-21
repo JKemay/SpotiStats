@@ -13,6 +13,7 @@ struct TimeRangePicker: View {
                 }
             }
             .pickerStyle(.segmented)
+            .onChange(of: selection) { _, _ in HapticManager.shared.selection() }
 
             Text("Spotify's listening windows — not lifetime totals.")
                 .font(.caption2)
