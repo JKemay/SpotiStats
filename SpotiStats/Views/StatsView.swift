@@ -76,6 +76,7 @@ struct StatsView: View {
         do {
             try pngData.write(to: tmpURL, options: .atomic)
             shareURL = tmpURL
+            HapticManager.shared.success()
             isShowingShareSheet = true
         } catch {
             // If we can't write to tmp, silently skip — no force-unwrap, no crash.
