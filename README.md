@@ -63,8 +63,9 @@ See [`docs`](docs/) and the in-repo design notes for details. Data handling is d
 - Format: `swift-format format -i -r SpotiStats`
 - Tests: run from Xcode (Cmd-U) or `xcodebuild test` (see CI).
 
-CI runs build, tests, and lint on every push.
+CI runs build, tests, and lint on every push and pull request; `main` is branch-protected so
+nothing merges without green checks.
 
 ## License
 
-TBD.
+Released under the [MIT License](LICENSE).
