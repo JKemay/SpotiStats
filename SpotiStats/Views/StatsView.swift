@@ -229,11 +229,36 @@ struct StatsView: View {
         if !clock.isEmpty {
             SectionCard(title: "Listening clock") {
                 ListeningClockGrid(clock: clock)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(clockAccessibilityLabel(clock))
                 Text("Times shown in UTC.")
                     .font(.caption2)
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
         }
+    }
+
+    private func clockAccessibilityLabel(_ clock: ListeningClock) -> String {
+        // Find the (weekday, hour) bucket with the highest intensity.
+        let weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        var bestWeekday = 0
+        var bestHour = 0
+        var bestIntensity = 0.0
+        for weekday in 0..<7 {
+            for hour in 0..<24 {
+                let intensity = clock.intensity(weekday: weekday, hour: hour)
+                if intensity > bestIntensity {
+                    bestIntensity = intensity
+                    bestWeekday = weekday
+                    bestHour = hour
+                }
+            }
+        }
+        let day = weekdayNames[bestWeekday]
+        let hour = bestHour == 0 ? "midnight" : bestHour < 12
+            ? "\(bestHour) AM"
+            : bestHour == 12 ? "noon" : "\(bestHour - 12) PM"
+        return "Listening clock. Most active on \(day) around \(hour)."
     }
 
     @ViewBuilder
@@ -300,11 +325,13 @@ private struct ListeningClockGrid: View {
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .frame(width: 10, alignment: .trailing)
+                        .accessibilityHidden(true)
                     ForEach(0..<24, id: \.self) { hour in
                         let intensity = clock.intensity(weekday: weekday, hour: hour)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(Theme.Colors.accent.opacity(0.12 + 0.88 * intensity))
                             .frame(width: cellSize, height: cellSize)
+                            .accessibilityHidden(true)
                     }
                 }
             }
