@@ -7,10 +7,14 @@ final class MockSpotifyAPI: SpotifyAPI {
     var topTracksResult: Result<[SpotifyTrack], Error> = .success([])
     var topArtistsResult: Result<[SpotifyArtist], Error> = .success([])
     var recentlyPlayedResult: Result<[PlayHistoryItem], Error> = .success([])
+    var currentUserResult: Result<SpotifyUser, Error> = .success(
+        SpotifyUser(id: "mock-user", displayName: "Mock User", images: [])
+    )
 
     private(set) var requestedTrackRanges: [SpotifyTimeRange] = []
     private(set) var requestedArtistRanges: [SpotifyTimeRange] = []
     private(set) var recentlyPlayedCallCount = 0
+    private(set) var currentUserCallCount = 0
 
     func topTracks(range: SpotifyTimeRange, limit: Int) async throws -> [SpotifyTrack] {
         requestedTrackRanges.append(range)
@@ -25,6 +29,11 @@ final class MockSpotifyAPI: SpotifyAPI {
     func recentlyPlayed(limit: Int) async throws -> [PlayHistoryItem] {
         recentlyPlayedCallCount += 1
         return try recentlyPlayedResult.get()
+    }
+
+    func currentUser() async throws -> SpotifyUser {
+        currentUserCallCount += 1
+        return try currentUserResult.get()
     }
 }
 

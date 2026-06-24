@@ -7,9 +7,12 @@ import SwiftUI
 /// irreversibly wipes everything. Both are destructive, so each is gated behind a confirmation.
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
+    @Environment(\.spotifyAPI) private var spotifyAPI
     @State private var confirmingSignOut = false
     @State private var confirmingDisconnect = false
     @State private var confirmingDelete = false
+    @State private var profileUser: SpotifyUser?
+    @State private var profileLoading = true
 
     /// Spotify's "Apps with access" page — true revocation of the app's Spotify access happens
     /// there (disconnecting only forgets our stored token).
@@ -20,6 +23,9 @@ struct SettingsView: View {
             ZStack {
                 NightCityBackground()
                 List {
+                    if profileLoading || profileUser != nil {
+                        profileSection
+                    }
                     accountSection
                     privacySection
                     aboutSection
@@ -27,6 +33,14 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Settings")
+            .task {
+                do {
+                    profileUser = try await spotifyAPI.currentUser()
+                } catch {
+                    // Silently omit the profile header on failure — Settings must always work.
+                }
+                profileLoading = false
+            }
             .confirmationDialog(
                 "Sign out of \(AppInfo.name)?",
                 isPresented: $confirmingSignOut,
@@ -70,6 +84,43 @@ struct SettingsView: View {
                 )
             }
         }
+    }
+
+    private var profileSection: some View {
+        Section {
+            HStack(spacing: Theme.Spacing.md) {
+                profileAvatar
+                Text(profileUser?.displayName ?? (profileLoading ? "" : "Spotify user"))
+                    .font(.headline)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .redacted(reason: profileLoading ? .placeholder : [])
+            }
+            .padding(.vertical, Theme.Spacing.xs)
+        }
+        .listRowBackground(Theme.Colors.surface)
+    }
+
+    private var profileAvatar: some View {
+        let size: CGFloat = 52
+        return AsyncImage(url: profileUser?.avatarURL) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFill()
+            } else {
+                ZStack {
+                    Theme.Colors.surface
+                    if profileLoading {
+                        Color.gray.opacity(0.3)
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .redacted(reason: profileLoading ? .placeholder : [])
     }
 
     private var accountSection: some View {

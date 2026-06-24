@@ -120,6 +120,23 @@ final class SpotifyAPIClientTests: XCTestCase {
         }
     }
 
+    func testCurrentUserHitsCorrectEndpointAndDecodes() async throws {
+        MockURLProtocol.requestHandler = { request in
+            let response = try makeHTTPResponse(url: request.url, status: 200)
+            return (response, Data(SpotifyFixtures.currentUser.utf8))
+        }
+
+        let client = makeClient(tokenProvider: StubTokenProvider())
+        let user = try await client.currentUser()
+
+        XCTAssertEqual(user.id, "user123")
+        XCTAssertEqual(user.displayName, "Jane Doe")
+        let url = try XCTUnwrap(MockURLProtocol.capturedRequests.last?.url)
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(components.path, "/v1/me")
+        XCTAssertNil(components.queryItems)
+    }
+
     func testServerErrorThrowsHTTPStatus() async {
         MockURLProtocol.requestHandler = { request in
             let serverError = try makeHTTPResponse(url: request.url, status: 500)
