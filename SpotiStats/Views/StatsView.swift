@@ -232,7 +232,8 @@ struct StatsView: View {
             return "Daily plays chart."
         }
         let busiestFormatted = busiest.date.formatted(.dateTime.month(.abbreviated).day())
-        return "Daily plays chart. \(total) total plays. Busiest day: \(busiestFormatted) with \(busiest.playCount) plays."
+        return "Daily plays chart. \(total) total plays. "
+            + "Busiest day: \(busiestFormatted) with \(busiest.playCount) plays."
     }
 
     @ViewBuilder
@@ -378,9 +379,12 @@ private struct TopAlbumCard: View {
         }
         .frame(width: Self.cardWidth, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(album.albumName) by \(album.artistsDisplay), \(album.playCount) \(album.playCount == 1 ? "play" : "plays")"
-        )
+        .accessibilityLabel(albumAccessibilityLabel)
+    }
+
+    private var albumAccessibilityLabel: String {
+        let plays = album.playCount == 1 ? "play" : "plays"
+        return "\(album.albumName) by \(album.artistsDisplay), \(album.playCount) \(plays)"
     }
 }
 
@@ -407,9 +411,12 @@ private struct StatTrackRow: View {
         }
         .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(rank). \(track.trackName) by \(track.artistsDisplay), \(track.playCount) \(track.playCount == 1 ? "play" : "plays")"
-        )
+        .accessibilityLabel(statTrackAccessibilityLabel)
+    }
+
+    private var statTrackAccessibilityLabel: String {
+        let plays = track.playCount == 1 ? "play" : "plays"
+        return "\(rank). \(track.trackName) by \(track.artistsDisplay), \(track.playCount) \(plays)"
     }
 }
 
