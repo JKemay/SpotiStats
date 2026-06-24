@@ -376,6 +376,10 @@ private struct TopAlbumCard: View {
             PlayCountBadge(count: album.playCount)
         }
         .frame(width: Self.cardWidth, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(album.albumName) by \(album.artistsDisplay), \(album.playCount) \(album.playCount == 1 ? "play" : "plays")"
+        )
     }
 }
 
@@ -401,6 +405,10 @@ private struct StatTrackRow: View {
             PlayCountBadge(count: track.playCount)
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(rank). \(track.trackName) by \(track.artistsDisplay), \(track.playCount) \(track.playCount == 1 ? "play" : "plays")"
+        )
     }
 }
 
@@ -419,6 +427,10 @@ private struct StatArtistRow: View {
             PlayCountBadge(count: artist.playCount)
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(rank). \(artist.artistName), \(artist.playCount) \(artist.playCount == 1 ? "play" : "plays")"
+        )
     }
 }
 
