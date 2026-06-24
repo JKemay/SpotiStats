@@ -220,8 +220,18 @@ struct StatsView: View {
                     AxisMarks(values: .automatic(desiredCount: 3))
                 }
                 .frame(height: 160)
+                .accessibilityLabel(chartAccessibilityLabel(bars))
             }
         }
+    }
+
+    private func chartAccessibilityLabel(_ bars: [DayBar]) -> String {
+        let total = bars.reduce(0) { $0 + $1.playCount }
+        guard let busiest = bars.max(by: { $0.playCount < $1.playCount }) else {
+            return "Daily plays chart."
+        }
+        let busiestFormatted = busiest.date.formatted(.dateTime.month(.abbreviated).day())
+        return "Daily plays chart. \(total) total plays. Busiest day: \(busiestFormatted) with \(busiest.playCount) plays."
     }
 
     @ViewBuilder
