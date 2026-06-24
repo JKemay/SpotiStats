@@ -39,6 +39,7 @@ protocol SpotifyAPI {
     func topTracks(range: SpotifyTimeRange, limit: Int) async throws -> [SpotifyTrack]
     func topArtists(range: SpotifyTimeRange, limit: Int) async throws -> [SpotifyArtist]
     func recentlyPlayed(limit: Int) async throws -> [PlayHistoryItem]
+    func currentUser() async throws -> SpotifyUser
 }
 
 extension SpotifyAPI {
@@ -121,6 +122,10 @@ final class SpotifyAPIClient: SpotifyAPI {
             query: [URLQueryItem(name: "limit", value: String(limit))]
         )
         return response.items
+    }
+
+    func currentUser() async throws -> SpotifyUser {
+        try await get("me", query: [])
     }
 
     // MARK: Request plumbing

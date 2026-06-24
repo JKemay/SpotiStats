@@ -92,6 +92,25 @@ enum SpotifyFixtures {
     }
     """
 
+    static let currentUser = """
+    {
+      "id": "user123",
+      "display_name": "Jane Doe",
+      "images": [
+        { "url": "https://img/avatar-large", "height": 300, "width": 300 },
+        { "url": "https://img/avatar-small", "height": 64, "width": 64 }
+      ]
+    }
+    """
+
+    static let currentUserNullDisplayName = """
+    {
+      "id": "user456",
+      "display_name": null,
+      "images": []
+    }
+    """
+
     static let recentlyPlayed = """
     {
       "items": [

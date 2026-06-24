@@ -117,6 +117,21 @@ struct SpotifyArtist: Decodable, Equatable, Sendable {
     }
 }
 
+// MARK: - User profile
+
+/// The authenticated user's Spotify profile, from `GET /me`.
+///
+/// `displayName` can be null (Spotify allows accounts with no display name set).
+/// `images` may be empty for users who have never set a profile photo.
+struct SpotifyUser: Decodable, Equatable, Sendable {
+    let id: String
+    let displayName: String?
+    let images: [SpotifyImage]
+
+    /// The smallest profile photo, or nil if the user has none.
+    var avatarURL: URL? { images.thumbnailURL }
+}
+
 // MARK: - Response envelopes
 
 /// Spotify wraps list endpoints in a paging object; for v1 we only need `items`.

@@ -64,6 +64,29 @@ final class SpotifyModelsDecodingTests: XCTestCase {
         XCTAssertEqual(response.items[0].playedAt, "2026-06-06T10:00:00.000Z")
     }
 
+    func testDecodesCurrentUser() throws {
+        let user = try makeDecoder().decode(
+            SpotifyUser.self,
+            from: Data(SpotifyFixtures.currentUser.utf8)
+        )
+        XCTAssertEqual(user.id, "user123")
+        XCTAssertEqual(user.displayName, "Jane Doe")
+        XCTAssertEqual(user.images.count, 2)
+        // thumbnailURL picks the smallest by area (64×64 < 300×300)
+        XCTAssertEqual(user.avatarURL, URL(string: "https://img/avatar-small"))
+    }
+
+    func testDecodesCurrentUserWithNullDisplayName() throws {
+        let user = try makeDecoder().decode(
+            SpotifyUser.self,
+            from: Data(SpotifyFixtures.currentUserNullDisplayName.utf8)
+        )
+        XCTAssertEqual(user.id, "user456")
+        XCTAssertNil(user.displayName)
+        XCTAssertEqual(user.images, [])
+        XCTAssertNil(user.avatarURL)
+    }
+
     func testTimeRangeQueryValuesAndLabels() {
         XCTAssertEqual(SpotifyTimeRange.shortTerm.queryValue, "short_term")
         XCTAssertEqual(SpotifyTimeRange.mediumTerm.queryValue, "medium_term")

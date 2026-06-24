@@ -53,4 +53,8 @@ struct UnconfiguredSpotifyAPI: SpotifyAPI {
     func recentlyPlayed(limit: Int) async throws -> [PlayHistoryItem] {
         throw NotConfigured()
     }
+
+    func currentUser() async throws -> SpotifyUser {
+        throw NotConfigured()
+    }
 }
