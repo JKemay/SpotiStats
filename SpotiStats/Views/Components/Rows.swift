@@ -75,6 +75,11 @@ struct TrackRow: View {
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(rank). \(track.name) by \(track.artistNames), \(track.durationMs.asTrackLength)"
+            + (track.explicit ? ", Explicit" : "")
+        )
     }
 }
 
@@ -104,6 +109,8 @@ struct ArtistRow: View {
             Spacer()
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(rank). \(artist.name)")
     }
 }
 
@@ -140,6 +147,17 @@ struct RecentlyPlayedRow: View {
             }
         }
         .padding(.vertical, Theme.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(recentlyPlayedLabel)
+    }
+
+    private var recentlyPlayedLabel: String {
+        var label = "\(item.track.name) by \(item.track.artistNames)"
+        if item.track.explicit { label += ", Explicit" }
+        if let playedAt = item.playedAtDate {
+            label += ", played \(playedAt.formatted(.relative(presentation: .named)))"
+        }
+        return label
     }
 }
 
