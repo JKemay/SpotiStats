@@ -60,6 +60,7 @@ struct StatsView: View {
             Image(systemName: "square.and.arrow.up")
         }
         .tint(Theme.Colors.accent)
+        .accessibilityLabel("Share your week")
     }
 
     private func renderAndShare(bundle: StatsBundle) {
