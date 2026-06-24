@@ -150,6 +150,16 @@ private struct RecentPlayCard: View {
             }
         }
         .frame(width: Self.cardWidth, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(recentPlayLabel)
+    }
+
+    private var recentPlayLabel: String {
+        var label = "\(play.trackName) by \(play.artistsDisplay)"
+        if let playedAt = play.playedAtDate {
+            label += ", played \(playedAt.formatted(.relative(presentation: .named)))"
+        }
+        return label
     }
 }
 
