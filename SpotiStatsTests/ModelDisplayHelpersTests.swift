@@ -50,4 +50,75 @@ final class ModelDisplayHelpersTests: XCTestCase {
         XCTAssertNil(LoadState<[Int]>.failed("nope").value)
         XCTAssertEqual(LoadState.loaded([1, 2]).value, [1, 2])
     }
+
+    // MARK: UserFacingError
+
+    func testOfflineURLErrorsMapToOfflineMessage() {
+        let offlineCodes: [URLError.Code] = [
+            .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed
+        ]
+        for code in offlineCodes {
+            XCTAssertEqual(
+                UserFacingError.message(for: URLError(code)),
+                "You're offline. Check your connection and retry.",
+                "Unexpected message for URLError code \(code)"
+            )
+        }
+    }
+
+    func testTimedOutURLErrorMapsToTimeoutMessage() {
+        XCTAssertEqual(
+            UserFacingError.message(for: URLError(.timedOut)),
+            "The request timed out. Please retry."
+        )
+    }
+
+    func testUnhandledURLErrorMapsToGenericNetworkMessage() {
+        XCTAssertEqual(
+            UserFacingError.message(for: URLError(.cancelled)),
+            "A network error occurred. Please retry."
+        )
+    }
+
+    func testSpotifyUnauthorizedMapsToSessionExpiredMessage() {
+        XCTAssertEqual(
+            UserFacingError.message(for: SpotifyAPIError.unauthorized),
+            "Your Spotify session expired. Try signing out and back in."
+        )
+    }
+
+    func testSpotifyRateLimitedMapsToRateLimitMessage() {
+        XCTAssertEqual(
+            UserFacingError.message(for: SpotifyAPIError.rateLimited(retryAfter: nil)),
+            "Spotify is busy right now. Give it a moment, then retry."
+        )
+    }
+
+    func testSpotifyHTTPErrorIncludesStatusCode() {
+        XCTAssertEqual(
+            UserFacingError.message(for: SpotifyAPIError.http(status: 503)),
+            "Spotify returned an error (HTTP 503). Please retry."
+        )
+    }
+
+    func testDecodingErrorMapsToUnreadableMessage() {
+        var decodingError: Error?
+        do {
+            _ = try JSONDecoder().decode(Int.self, from: Data("not json".utf8))
+        } catch {
+            decodingError = error
+        }
+        guard let err = decodingError else { return XCTFail("Expected a decoding error") }
+        XCTAssertEqual(
+            UserFacingError.message(for: err),
+            "Spotify sent something we couldn't read. Please retry."
+        )
+    }
+
+    func testUnknownErrorFallsBackToLocalizedDescription() {
+        struct Sentinel: LocalizedError {
+            var errorDescription: String? { "sentinel error" }
+        }
+        XCTAssertEqual(UserFacingError.message(for: Sentinel()), "sentinel error")
+    }
 }
