@@ -177,6 +177,33 @@ final class StatsTests: XCTestCase {
         XCTAssertEqual(album.artistsDisplay, "EDEN")
     }
 
+    func testTopArtistDecodesFromRPCJSON() throws {
+        let json = """
+        {
+          "artist_name": "EDEN",
+          "play_count": 12
+        }
+        """
+        let artist = try JSONDecoder().decode(StatArtist.self, from: Data(json.utf8))
+        XCTAssertEqual(artist.artistName, "EDEN")
+        XCTAssertEqual(artist.playCount, 12)
+        XCTAssertEqual(artist.id, "EDEN")
+    }
+
+    func testDailyPointDecodesFromRPCJSON() throws {
+        let json = """
+        {
+          "day": "2026-06-17",
+          "play_count": 9,
+          "est_ms": 1800000
+        }
+        """
+        let point = try JSONDecoder().decode(StatDailyPoint.self, from: Data(json.utf8))
+        XCTAssertEqual(point.playCount, 9)
+        XCTAssertEqual(point.estMs, 1_800_000)
+        XCTAssertNotNil(point.date)
+    }
+
     func testCollectedPlayDecodesFromPlayEventsRow() throws {
         // Mirrors a raw play_events select (snake_case; timestamptz with fractional seconds).
         let json = """
