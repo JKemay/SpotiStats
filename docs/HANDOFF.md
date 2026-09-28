@@ -338,6 +338,14 @@ Done (continued):
   status code), `DecodingError` (round-tripped through `JSONDecoder`), and the default fallback to
   `localizedDescription`. 115 tests total, `swiftlint --strict` clean.
 
+- [x] **Decode-test coverage gap fix** (daily/stat-artist-decode-test): `StatArtist` had zero
+  JSON-decode tests (only exercised via `MockStatsProvider` fixtures) and `StatDailyPoint` was
+  only tested via its manual struct initializer, never against actual `stats_top_artists` /
+  `stats_daily` RPC-shaped JSON. Added `testTopArtistDecodesFromRPCJSON` and
+  `testDailyPointDecodesFromRPCJSON` to `StatsTests.swift`, matching the existing decode-test
+  style for the other stats models. No production code changed. `swiftlint --strict` clean;
+  109 tests pass (was 107).
+
 **Next up:**
 1. **Test Delete Account** (owner) on a throwaway Spotify account — now reachable thanks to the
    account-switch fix. Disconnect is already verified.
