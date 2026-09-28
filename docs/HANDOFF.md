@@ -330,6 +330,13 @@ Done (continued):
   placed after the daily-plays chart, shown only when non-empty; "Times shown in UTC." caption.
   3 new tests (intensity normalisation, empty-state / no-divide-by-zero, JSON decode). **Migration
   NOT yet deployed** — reviewer runs `supabase db push`.
+- [x] **`UserFacingError` test coverage** (daily/user-facing-error-tests, PR open 2026-06-27):
+  Added 8 direct tests for `UserFacingError.message(for:)` to `ModelDisplayHelpersTests.swift`,
+  covering all previously untested branches: the three "offline" `URLError` codes
+  (`.notConnectedToInternet`, `.networkConnectionLost`, `.dataNotAllowed`), `.timedOut`, an
+  unhandled `URLError` (generic network message), `SpotifyAPIError.http(status:)` (includes the
+  status code), `DecodingError` (round-tripped through `JSONDecoder`), and the default fallback to
+  `localizedDescription`. 115 tests total, `swiftlint --strict` clean.
 
 **Next up:**
 1. **Test Delete Account** (owner) on a throwaway Spotify account — now reachable thanks to the
@@ -389,6 +396,8 @@ Done (continued):
   limit** mid-session, so these 4 PRs were verified locally (lint + full XCTest) and merged through
   a brief branch-protection relaxation, then protection was restored — fix billing
   (Settings -> Billing & plans) so CI runs again.
+- 2026-06-27: **`UserFacingError` test coverage.** 8 direct tests for all branches of
+  `UserFacingError.message(for:)` added to `ModelDisplayHelpersTests.swift`; 115 tests total.
 
 Local build/run recipe used for the spike (this Mac has Xcode 16.0 but it was launched via a
 per-process `DEVELOPER_DIR` / `xcode-select`; if `xcodebuild` ever reports "requires Xcode", run
